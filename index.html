@@ -56,7 +56,7 @@ const rd=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){retu
 const SUPABASE_URL='https://bnrogtqhxbqinrtzwblv.supabase.co';
 const SUPABASE_KEY='sb_publishable_XmxSriGEsgBmA18TrymD7Q_aEvYIwBK';
 const SYNC_URL=SUPABASE_URL+'/functions/v1/aksesi-sync';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:'pkce',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
 let cloudAdmin=false,cloudLoading=false,cloudSaveChain=Promise.resolve(),presenceBusy=false;
 async function syncCall(action,data={},accessToken=''){
  const headers={'Content-Type':'application/json','apikey':SUPABASE_KEY};
@@ -186,7 +186,7 @@ function login(message=''){
   if(!email)return $('#er').textContent='Shkruaj emailin.';
   $('#er').textContent='';
   try{
-   const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:'https://aksesi.space/#admin'}});
+   const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:'https://aksesi.space/'}});
    if(error)throw error;
    $('#cloudmsg').textContent='Konfirmimi u dërgua. Hape emailin dhe shtyp “Hap Aksesi” për të hyrë direkt.';
   }catch(e){$('#er').textContent=e.message||'Dërgimi i emailit dështoi.'}
