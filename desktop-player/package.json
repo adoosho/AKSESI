@@ -28,13 +28,15 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "assets/aksesi.ico"
     },
     "mac": {
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "icon": "assets/aksesi.icns"
     },
     "nsis": {
       "oneClick": false,
