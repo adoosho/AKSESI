@@ -152,7 +152,6 @@ const SS='width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;
 const me=()=>cfg().users.find(u=>u.id===sessionStorage.getItem('sig_in')),opt=c=>c.biz.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
 async function admin(){
  try{
-  await sb.auth.initialize();
   const {data:{session}}=await sb.auth.getSession();
   if(!session)return login();
   cloudAdmin=true;
