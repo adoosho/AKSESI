@@ -57,8 +57,8 @@ const SUPABASE_URL='https://bnrogtqhxbqinrtzwblv.supabase.co',SUPABASE_KEY='sb_p
 async function syncCall(action,data={}){const r=await fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY},body:JSON.stringify({action,...data})});let j={};try{j=await r.json()}catch(e){}if(!r.ok||j.error)throw Error(j.error||'Gabim në server.');return j}
 const GR=['linear-gradient(135deg,#1b1b1c,#3d3d42)','linear-gradient(135deg,#d9004c,#8a0030)','linear-gradient(135deg,#ff5a8a,#d9004c)','linear-gradient(135deg,#1b1b1c,#d9004c)','linear-gradient(135deg,#2c2c31,#0e0e10)'];
 function cfg(){let c=rd(KC,null)||{};c.ads=Array.isArray(c.ads)?c.ads:[];c.devices=c.devices&&typeof c.devices==='object'?c.devices:{};c.biz=Array.isArray(c.biz)?c.biz:[];c.users=Array.isArray(c.users)?c.users:[];return c}
-const adBG=a=>a.img?`background-image:url(${a.img})`:`background:${a.bg}`;
-const adHTML=a=>`<div class="ad" style="${adBG(a)}"><h1>${esc(a.title)}</h1><p>${esc(a.sub)}</p></div>`;
+const adBG=a=>a.img&&a.mediaType!=='video'?`background-image:url('${a.img}')`:`background:${a.bg||'#111'}`;
+const adHTML=a=>'<div class="ad" style="'+adBG(a)+'">'+(a.mediaType==='video'&&a.img?'<video src="'+esc(a.img)+'" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>':'')+(a.title?'<h1 style="position:relative;z-index:1">'+esc(a.title)+'</h1>':'')+(a.sub?'<p style="position:relative;z-index:1">'+esc(a.sub)+'</p>':'')+'</div>';
 function route(){player()}
 addEventListener('hashchange',()=>location.reload());
 function home(){$('#app').innerHTML=`<div class="wrap"><div class="logo" style="justify-content:center;font-size:26px;margin-top:6vh"><i></i>Aksesi</div><p class="mu" style="text-align:center">Menaxhim profesional i monitorëve reklamues</p>
