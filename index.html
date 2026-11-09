@@ -74,10 +74,15 @@ let cloudAdmin=false,cloudLoading=false,cloudSaveChain=Promise.resolve(),presenc
 async function syncCall(action,data={},accessToken=''){
  const headers={'Content-Type':'application/json','apikey':SUPABASE_KEY};
  if(accessToken)headers.Authorization='Bearer '+accessToken;
- const response=await fetch(SYNC_URL,{method:'POST',headers,body:JSON.stringify({action,...data})});
- let result={};try{result=await response.json()}catch(e){}
- if(!response.ok||result.error)throw new Error(result.error||'Gabim gjatë lidhjes me serverin.');
- return result;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+ try{
+  const response=await fetch(SYNC_URL,{method:'POST',headers,body:JSON.stringify({action,...data}),signal:controller.signal});
+  const raw=await response.text();
+  let result={};try{result=raw?JSON.parse(raw):{}}catch(e){throw new Error('Serveri ktheu përgjigje të pavlefshme (HTTP '+response.status+').')}
+  if(!response.ok||result.error)throw new Error(result.error||'Gabim gjatë lidhjes me serverin (HTTP '+response.status+').');
+  return result;
+ }catch(e){if(e.name==='AbortError')throw new Error('Serveri nuk u përgjigj brenda 15 sekondave. Provo përsëri.');throw e}
+ finally{clearTimeout(timer)}
 }
 async function adminCall(action,data={}){
  const {data:{session}}=await sb.auth.getSession();
@@ -166,7 +171,9 @@ async function admin(){
   if(!session)return login();
   cloudAdmin=true;
   cloudLoading=true;
+  const status=$('#cloudmsg');if(status)status.textContent='Sesioni u verifikua. Po marrim të dhënat e panelit…';
   const remote=await adminCall('admin_get');
+  if(status)status.textContent='Të dhënat u morën. Po përgatisim panelin…';
   let state=remote.data?.data||remote.data||{};
   const local=rd(KC,null);
   const validRemote=Array.isArray(state.ads)&&state.devices&&typeof state.devices==='object'&&Array.isArray(state.biz)&&Array.isArray(state.users);
