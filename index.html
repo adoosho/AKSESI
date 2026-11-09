@@ -204,7 +204,7 @@ function registerScreen(message=''){
   if(password!==password2)return $('#er').textContent='Fjalëkalimet nuk përputhen.';
   button.disabled=true;button.textContent='Duke krijuar llogarinë…';$('#er').textContent='';
   try{
-   const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:'https://aksesi.space/#admin',data:{name}}});
+   const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:'https://aksesi.space/',data:{name}}});
    if(error)throw error;
    if(data.session){await admin();return}
    $('#regmsg').textContent='Llogaria u krijua. Kontrollo emailin dhe kliko lidhjen e konfirmimit për ta aktivizuar, pastaj hyr në panel.';
