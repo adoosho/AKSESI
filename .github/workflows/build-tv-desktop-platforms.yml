@@ -36,7 +36,9 @@ jobs:
             files: desktop-player/dist/*.exe
           - os: macos-latest
             artifact: aksesi-macos
-            files: desktop-player/dist/*.dmg,desktop-player/dist/*.zip
+            files: |
+              desktop-player/dist/*.dmg
+              desktop-player/dist/*.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
