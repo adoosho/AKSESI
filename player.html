@@ -79,7 +79,7 @@ function home(){$('#app').innerHTML=`<div class="wrap"><div class="logo" style="
 /* ---------- PLAYER ---------- */
 const LAY={full:[[0,0,100,100]],v2:[[0,0,50,100],[50,0,50,100]],h2:[[0,0,100,50],[0,50,100,50]],g4:[[0,0,50,50],[50,0,50,50],[0,50,50,50],[50,50,50,50]]};
 function player(){
- const savedGet=k=>{let v=localStorage.getItem(k);if(!v&&window.AksesiStore){try{v=window.AksesiStore.get(k)||'';if(v)localStorage.setItem(k,v)}catch(e){}}return v||null};
+ const savedGet=k=>{let v=localStorage.getItem(k);if(!v&&window.AksesiStore){try{v=window.AksesiStore.get(k)||'';if(v)localStorage.setItem(k,v)}catch(e){}}if(v&&window.AksesiStore){try{window.AksesiStore.set(k,String(v))}catch(e){}}return v||null};
  const savedSet=(k,v)=>{localStorage.setItem(k,v);try{window.AksesiStore?.set(k,String(v))}catch(e){}};
  const savedRemove=k=>{localStorage.removeItem(k);try{window.AksesiStore?.remove(k)}catch(e){}};
  let code=savedGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){do{code=String(Math.floor(100000+Math.random()*900000))}while(cfg().devices[code]||localStorage.getItem('sig_dev_'+code));savedSet('sig_pcode',code)}
