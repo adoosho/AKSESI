@@ -73,7 +73,7 @@ async function adminCall(action,data={}){
 }
 async function refreshPresence(){
  if(!cloudAdmin||presenceBusy)return;presenceBusy=true;
- try{const r=await adminCall('admin_presence');(r.presence||[]).forEach(p=>{const pd=p.player_data||{};localStorage.setItem('sig_dev_'+p.code,JSON.stringify({...pd,code:p.code,seen:Date.parse(p.last_seen)||Date.now(),status:p.status}))})}catch(e){console.warn('Presence:',e.message)}finally{presenceBusy=false}
+ try{const r=await adminCall('admin_presence');(r.presence||[]).forEach(p=>{const pd=p.player_data||{};localStorage.setItem('sig_dev_'+p.code,JSON.stringify({...pd,code:p.code,seen:p.last_seen?new Date(p.last_seen).getTime():0,status:p.status}))})}catch(e){console.warn('Presence:',e.message)}finally{presenceBusy=false}
 }
 const wr=(k,v)=>{
  try{localStorage.setItem(k,JSON.stringify(v))}catch(e){alert('Memoria e plotë – përdor imazhe më të vogla.')}
@@ -192,7 +192,7 @@ function login(message=''){
   }catch(e){$('#er').textContent=e.message||'Dërgimi i emailit dështoi.'}
  };
 }
-const online=c=>{const d=rd('sig_dev_'+c,null);return d&&Date.now()-d.seen<15000?d:null};
+const online=c=>{const d=rd('sig_dev_'+c,null);return d&&d.status==='online'&&Number.isFinite(Number(d.seen))&&Date.now()-Number(d.seen)<60000?d:null};
 function lastSeen(k){const d=rd('sig_dev_'+k,null);if(!d)return 'asnjëherë';const s=Math.round((Date.now()-d.seen)/1000);return s<60?s+'s më parë':s<3600?Math.round(s/60)+' min më parë':Math.round(s/3600)+' orë më parë'}
 function draw(){const c=cfg(),u=me();if(!u){sessionStorage.clear();location.reload();return}
  const A=u.role==='admin',Mg=u.role!=='advertiser',bn=id=>esc(c.biz.find(b=>b.id===id)?.name||'—'),inB=x=>A?(!fb||x.biz===fb):x.biz===u.biz;
