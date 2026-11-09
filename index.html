@@ -84,13 +84,13 @@ async function syncCall(action,data={},accessToken=''){
  }catch(e){if(e.name==='AbortError')throw new Error('Serveri nuk u përgjigj brenda 15 sekondave. Provo përsëri.');throw e}
  finally{clearTimeout(timer)}
 }
-async function adminCall(action,data={}){
- const {data:{session}}=await sb.auth.getSession();
+async function adminCall(action,data={},sessionOverride=null){
+ const session=sessionOverride||(await sb.auth.getSession()).data.session;
  if(!session?.access_token)throw new Error('Sesioni ka skaduar. Hyr përsëri.');
  return syncCall(action,data,session.access_token);
 }
 async function refreshPresence(){
- if(!cloudAdmin||presenceBusy)return;presenceBusy=true;
+ if(!cloudAdmin||presenceBusy||!Object.keys(cfg().devices||{}).length)return;presenceBusy=true;
  try{const r=await adminCall('admin_presence');(r.presence||[]).forEach(p=>{const pd=p.player_data||{};localStorage.setItem('sig_dev_'+p.code,JSON.stringify({...pd,code:p.code,seen:p.last_seen?new Date(p.last_seen).getTime():0,status:p.status}))})}catch(e){console.warn('Presence:',e.message)}finally{presenceBusy=false}
 }
 const wr=(k,v)=>{
@@ -165,34 +165,48 @@ function player(){
 let tab='mon',modal=null,fb='';
 const SS='width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--sf)',RL={admin:'Admin',manager:'Menaxher',advertiser:'Reklamues'};
 const me=()=>cfg().users.find(u=>u.id===sessionStorage.getItem('sig_in')),opt=c=>c.biz.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
-async function admin(){
+async function admin(sessionOverride=null){
  try{
-  const {data:{session}}=await sb.auth.getSession();
+  const session=sessionOverride||(await sb.auth.getSession()).data.session;
   if(!session)return login();
+  const uid=session.user?.id;
+  if(!uid)throw new Error('Sesioni nuk përmban identitetin e përdoruesit. Hyr përsëri.');
   cloudAdmin=true;
   cloudLoading=true;
-  const status=$('#cloudmsg');if(status)status.textContent='Sesioni u verifikua. Po marrim të dhënat e panelit…';
-  const remote=await adminCall('admin_get');
-  if(status)status.textContent='Të dhënat u morën. Po përgatisim panelin…';
+  const cacheKey='sig_cfg_user_'+uid;
+  const cached=rd(cacheKey,null);
+  const bizId='b'+String(uid).replaceAll('-','').slice(0,12);
+  const fallbackName=String(session.user.user_metadata?.name||session.user.email||'Përdorues').split('@')[0];
+  const fastState=cached&&Array.isArray(cached.ads)&&cached.devices&&typeof cached.devices==='object'&&Array.isArray(cached.biz)&&Array.isArray(cached.users)
+   ?cached
+   :{ads:[],devices:{},biz:[{id:bizId,name:fallbackName}],users:[{id:uid,name:fallbackName,user:session.user.email||'',role:'admin',biz:bizId,monitors:[]}]};
+  localStorage.setItem(KC,JSON.stringify(fastState));
+  sessionStorage.setItem('sig_in',uid);
+  draw();
+  await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+  const remote=await adminCall('admin_get',{},session);
   let state=remote.data?.data||remote.data||{};
-  const local=rd(KC,null);
   const validRemote=Array.isArray(state.ads)&&state.devices&&typeof state.devices==='object'&&Array.isArray(state.biz)&&Array.isArray(state.users);
   if(!validRemote){
-   state=local&&Array.isArray(local.ads)&&local.devices&&Array.isArray(local.biz)&&Array.isArray(local.users)?local:{ads:[],devices:{},biz:[{id:'b1',name:'Aksesi'}],users:[{id:'u1',name:'Administrator',user:'admin',role:'admin'}]};
-   if(!state.biz.length)state.biz=[{id:'b1',name:'Aksesi'}];
-   if(!state.users.length)state.users=[{id:'u1',name:'Administrator',user:'admin',role:'admin'}];
-   await adminCall('admin_save',{data:state});
+   state=fastState;
+   if(!state.biz.length)state.biz=[{id:bizId,name:'Aksesi'}];
+   if(!state.users.length)state.users=fastState.users;
+   await adminCall('admin_save',{data:state},session);
   }else{
-   if(!state.biz.length)state.biz=[{id:'b1',name:'Aksesi'}];
-   if(!state.users.some(x=>x.role==='admin'))state.users.unshift({id:'u1',name:'Administrator',user:'admin',role:'admin'});
+   if(!state.biz.length)state.biz=[{id:bizId,name:'Aksesi'}];
+   if(!state.users.some(x=>x.id===uid)){
+    state.users.unshift({id:uid,name:fallbackName,user:session.user.email||'',role:'admin',biz:state.biz[0].id,monitors:[]});
+   }
   }
   localStorage.setItem(KC,JSON.stringify(state));
-  const adminUser=state.users.find(x=>x.role==='admin')||state.users[0];
+  localStorage.setItem(cacheKey,JSON.stringify(state));
+  const adminUser=state.users.find(x=>x.id===uid)||state.users.find(x=>x.role==='admin')||state.users[0];
+  if(!adminUser)throw new Error('Nuk u gjet profili i administratorit.');
   sessionStorage.setItem('sig_in',adminUser.id);
   cloudLoading=false;
   draw();
   refreshPresence();
-  setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},1000);
+  setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},5000);
   setInterval(refreshPresence,5000);
   addEventListener('storage',()=>{if(!modal)draw()});
  }catch(e){cloudAdmin=false;cloudLoading=false;login(e.message)}
@@ -211,9 +225,9 @@ function login(message=''){
   if(!email||!password){$('#er').textContent='Shkruaj emailin dhe fjalëkalimin.';return}
   button.disabled=true;button.textContent='Duke hyrë…';$('#er').textContent='';$('#cloudmsg').textContent='Po lidhemi me panelin…';
   try{
-   const {error}=await sb.auth.signInWithPassword({email,password});
+   const {data,error}=await sb.auth.signInWithPassword({email,password});
    if(error)throw error;
-   await admin();
+   await admin(data?.session||null);
   }catch(e){
    $('#er').textContent=e.message||'Hyrja dështoi.';
    $('#cloudmsg').textContent='';
@@ -278,7 +292,7 @@ function draw(){const c=cfg(),u=me();if(!u){sessionStorage.clear();location.relo
  if(tab==='biz'){body=`<div class="grid">${c.biz.map(b=>`<div class="card"><div class="cb"><b>🏢 ${esc(b.name)}</b><div class="mu">${Object.values(c.devices).filter(d=>d.biz===b.id).length} monitorë · ${c.ads.filter(a=>a.biz===b.id).length} reklama · ${c.users.filter(x=>x.biz===b.id).length} përdorues</div><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn d s" data-a="db" data-k="${b.id}">Fshij</button></div></div></div>`).join('')}</div>`;addb='nb|Biznes i ri'}
  const [ab,al]=addb.split('|');
  $('#app').innerHTML=`<div class="top"><img class="lw" src="${LOGOW}" alt="Aksesi"><div class="tabs">${tabs.map(t=>`<button class="tab ${tab===t[0]?'on':''}" data-a="t" data-k="${t[0]}">${t[1]}</button>`).join('')}<button class="tab" data-a="out">Dil</button></div></div>
- <div class="wrap"><div class="mu">👤 ${esc(u.name)} · ${RL[u.role]}${u.biz?' · '+bn(u.biz):''}</div><div class="stats"><div class="stat"><b>${codes.length}</b><span>Monitorë</span></div><div class="stat"><b style="color:var(--ok)">${on}</b><span>Online</span></div><div class="stat"><b style="color:var(--er)">${codes.length-on}</b><span>Offline</span></div>${Mg?`<div class="stat"><b>${ads.length}</b><span>Reklama</span></div>`:''}</div>
+ <div class="wrap"><div class="mu">👤 ${esc(u.name)} · ${RL[u.role]}${u.biz?' · '+bn(u.biz):''}${cloudLoading?' · <span style="color:var(--ac)">Po sinkronizohen të dhënat…</span>':''}</div><div class="stats"><div class="stat"><b>${codes.length}</b><span>Monitorë</span></div><div class="stat"><b style="color:var(--ok)">${on}</b><span>Online</span></div><div class="stat"><b style="color:var(--er)">${codes.length-on}</b><span>Offline</span></div>${Mg?`<div class="stat"><b>${ads.length}</b><span>Reklama</span></div>`:''}</div>
  <div class="row" style="margin-bottom:6px;flex-wrap:wrap">${A&&(tab==='mon'||tab==='ads')?`<select id="fb" style="${SS};width:auto" onchange="fb=this.value;draw()"><option value="">Të gjitha bizneset</option>${opt(c).replace(`value="${fb}"`,`value="${fb}" selected`)}</select>`:''}<span class="sp"></span>${ab?`<button class="btn" data-a="${ab}">+ ${al}</button>`:''}</div>${body}</div>${modal||''}`}
 const M=h=>modal=`<div class="mod" data-a="x"><div class="box">${h}</div></div>`,BT=(ok,k='')=>`<div class="row" style="margin-top:14px"><span class="sp"></span><button class="btn g" data-a="x">Anulo</button><button class="btn" data-a="${ok}" data-k="${k}">Ruaj</button></div>`;
 const DR=(f='',t='')=>`<div class="row" style="margin-top:12px;gap:10px"><div class="sp"><div class="mu">Aktive nga</div><input type="date" id="df" value="${f||''}"></div><div class="sp"><div class="mu">Deri më</div><input type="date" id="dt" value="${t||''}"></div></div>`;
