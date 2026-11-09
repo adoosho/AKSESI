@@ -1,0 +1,13 @@
+{
+  "id": "space.aksesi.player",
+  "version": "1.0.0",
+  "vendor": "AKSESI",
+  "type": "web",
+  "main": "index.html",
+  "title": "AKSESI",
+  "icon": "icon.png",
+  "largeIcon": "icon-large.png",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "supportTouchMode": false
+}
