@@ -57,6 +57,7 @@ const SUPABASE_URL='https://bnrogtqhxbqinrtzwblv.supabase.co';
 const SUPABASE_KEY='sb_publishable_XmxSriGEsgBmA18TrymD7Q_aEvYIwBK';
 const SYNC_URL=SUPABASE_URL+'/functions/v1/aksesi-sync';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
+sb.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY'){recoveryMode=true;resetPasswordScreen()}});
 let cloudAdmin=false,cloudLoading=false,cloudSaveChain=Promise.resolve(),presenceBusy=false;
 async function syncCall(action,data={},accessToken=''){
  const headers={'Content-Type':'application/json','apikey':SUPABASE_KEY};
@@ -95,8 +96,9 @@ function cfg(){
 }
 const adBG=a=>a.img?`background-image:url(${a.img})`:`background:${a.bg}`;
 const adHTML=a=>`<div class="ad" style="${adBG(a)}"><h1>${esc(a.title)}</h1><p>${esc(a.sub)}</p></div>`;
-function route(){if(location.hash.includes('type=recovery')){resetPasswordScreen();return}const h=location.hash.slice(1);if(h==='player')player();else if(h==='admin')admin();else admin()}
-addEventListener('hashchange',()=>location.reload());
+let recoveryMode=false;
+function route(){if(recoveryMode||location.hash.includes('type=recovery')){resetPasswordScreen();return}const h=location.hash.slice(1);if(h==='player')player();else if(h==='admin')admin();else admin()}
+addEventListener('hashchange',()=>{if(location.hash.includes('type=recovery')){recoveryMode=true;resetPasswordScreen()}else route()});
 function home(){$('#app').innerHTML=`<div class="wrap"><div class="logo" style="justify-content:center;font-size:26px;margin-top:6vh"><i></i>Aksesi</div><p class="mu" style="text-align:center">Menaxhim profesional i monitorëve reklamues</p>
 <div class="pick"><button onclick="location.hash='player';">📺<b>Aplikacioni i Monitorit (Player)</b><span class="mu">Instalohet në TV (Android 5.0+). Shfaq kodin 6-shifror për çiftim.</span></button>
 <button onclick="location.hash='admin';">🖥️<b>Paneli i Menaxhimit (Admin)</b><span class="mu">Login, shto monitorë, menaxho reklamat nga distanca.</span></button></div>
@@ -195,12 +197,14 @@ function login(message=''){
  };
 }
 function resetPasswordScreen(){
- $('#app').innerHTML=`<div class="login"><h2>Vendos fjalëkalim të ri</h2><p class="mu">Shkruaj fjalëkalimin e ri për llogarinë tënde.</p><div style="display:grid;gap:10px"><input type="password" id="newpass" placeholder="Fjalëkalimi i ri" autocomplete="new-password"><input type="password" id="newpass2" placeholder="Përsërite fjalëkalimin" autocomplete="new-password"><button class="btn" id="savepass">Ruaj fjalëkalimin</button><div class="mu" id="er" style="color:var(--er)"></div></div></div>`;
+ $('#app').innerHTML=`<div class="login"><h2>Ndrysho fjalëkalimin</h2><p class="mu">Vendos fjalëkalimin e ri dhe konfirmoje për ta ruajtur.</p><div style="display:grid;gap:10px"><label for="newpass">Fjalëkalimi i ri</label><input type="password" id="newpass" placeholder="Shkruaj fjalëkalimin e ri" autocomplete="new-password"><label for="newpass2">Konfirmo fjalëkalimin e ri</label><input type="password" id="newpass2" placeholder="Shkruaj përsëri fjalëkalimin e ri" autocomplete="new-password"><button class="btn" id="savepass">Ruaj fjalëkalimin e ri</button><div class="mu" id="er" style="color:var(--er)"></div></div></div>`;
  $('#savepass').onclick=async()=>{
   const password=$('#newpass').value,password2=$('#newpass2').value;
+  if(!password||!password2)return $('#er').textContent='Plotëso të dy fushat.';
   if(password.length<6)return $('#er').textContent='Fjalëkalimi duhet të ketë së paku 6 karaktere.';
   if(password!==password2)return $('#er').textContent='Fjalëkalimet nuk përputhen.';
-  try{const {error}=await sb.auth.updateUser({password});if(error)throw error;await sb.auth.signOut();history.replaceState(null,'',location.pathname+'#admin');login('Fjalëkalimi u ndryshua. Hyr me fjalëkalimin e ri.')}catch(e){$('#er').textContent=e.message||'Nuk u ruajt fjalëkalimi.'}
+  const button=$('#savepass');button.disabled=true;button.textContent='Duke ruajtur…';
+  try{const {data:{session}}=await sb.auth.getSession();if(!session)throw new Error('Lidhja e rikuperimit ka skaduar. Kërko një email të ri për rivendosje.');const {error}=await sb.auth.updateUser({password});if(error)throw error;recoveryMode=false;await sb.auth.signOut();history.replaceState(null,'',location.pathname+'#admin');login('Fjalëkalimi u ndryshua me sukses. Tani hyr me fjalëkalimin e ri.')}catch(e){$('#er').textContent=e.message||'Nuk u ruajt fjalëkalimi.';button.disabled=false;button.textContent='Ruaj fjalëkalimin e ri'}
  };
 }
 const online=c=>{const d=rd('sig_dev_'+c,null);return d&&d.status==='online'&&Number.isFinite(Number(d.seen))&&Date.now()-Number(d.seen)<60000?d:null};
