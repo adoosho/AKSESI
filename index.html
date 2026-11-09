@@ -7,8 +7,8 @@
 :root{--bg:#f5f5f7;--sf:#fff;--tx:#1b1b1c;--mu:#6b6b72;--bd:#e6e6ea;--ac:#d9004c;--ok:#16a34a;--er:#b91c1c;--sh:0 2px 14px rgba(27,27,28,.07);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e0e10;--sf:#1a1a1d;--tx:#f2f2f4;--mu:#9a9aa3;--bd:#2c2c31;--ac:#ff2d6f;--sh:0 4px 20px rgba(0,0,0,.5);color-scheme:dark}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-button,input,select{font:inherit;color:inherit}
-.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer}
+button,input,select{font:inherit;color:inherit}button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}.btn.d{background:transparent;color:var(--er);border:1px solid var(--bd)}.btn.s{padding:6px 12px;font-size:13px}
 input[type=text],input[type=email],input[type=password],input[type=number],input[type=date]{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--sf)}
 .wrap{max-width:1100px;margin:0 auto;padding:16px}
@@ -190,21 +190,27 @@ async function admin(){
   addEventListener('storage',()=>{if(!modal)draw()});
  }catch(e){cloudAdmin=false;cloudLoading=false;login(e.message)}
 }
+function bindTap(el,handler){
+ if(!el)return;
+ let lastTouch=0;
+ el.addEventListener('pointerup',e=>{if(e.pointerType==='touch'||e.pointerType==='pen'){lastTouch=Date.now();handler(e)}});
+ el.addEventListener('click',e=>{if(Date.now()-lastTouch<800)return;handler(e)});
+}
 function login(message=''){
  $('#app').innerHTML=`<div class="login"><div style="background:#1b1b1c;border-radius:14px;padding:18px 20px;margin-bottom:6px;border-bottom:3px solid var(--ac)"><img src="${LOGOW}" alt="Aksesi" style="height:44px;display:block;margin:0 auto"></div><h2 style="margin:18px 0 4px">Hyr në Aksesi</h2><p class="mu">Hyr me email dhe fjalëkalim.</p><div style="display:grid;gap:10px"><input type="email" id="email" placeholder="Email" autocomplete="username"><input type="password" id="password" placeholder="Fjalëkalimi" autocomplete="current-password"><button class="btn" id="go">Hyr</button><button class="btn g" id="forgot" type="button">Kam harruar fjalëkalimin</button><button class="btn g" id="register" type="button">Krijo llogari të re</button><div class="mu" id="er" style="color:var(--er)"></div><div class="mu" id="cloudmsg">${message||''}</div></div></div>`;
- $('#go').onclick=async()=>{
+ bindTap($('#go'),async()=>{
   const email=$('#email').value.trim(),password=$('#password').value;
   if(!email||!password)return $('#er').textContent='Shkruaj emailin dhe fjalëkalimin.';
   $('#er').textContent='';
   try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await admin()}catch(e){$('#er').textContent=e.message||'Hyrja dështoi.'}
- };
- $('#register').onclick=()=>registerScreen();
- $('#forgot').onclick=async()=>{
+ });
+ bindTap($('#register'),()=>registerScreen());
+ bindTap($('#forgot'),async()=>{
   const email=$('#email').value.trim();
   if(!email)return $('#er').textContent='Shkruaj emailin për rikuperim.';
   $('#er').textContent='';
   try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://aksesi.space/'});if(error)throw error;$('#cloudmsg').textContent='U dërgua emaili për rivendosjen e fjalëkalimit. Kontrollo Inbox dhe Spam.'}catch(e){$('#er').textContent=e.message||'Emaili i rikuperimit nuk u dërgua.'}
- };
+ });
 }
 function registerScreen(message=''){
  $('#app').innerHTML=`<div class="login"><div style="background:#1b1b1c;border-radius:14px;padding:18px 20px;margin-bottom:6px;border-bottom:3px solid var(--ac)"><img src="${LOGOW}" alt="Aksesi" style="height:44px;display:block;margin:0 auto"></div><h2 style="margin:18px 0 4px">Krijo llogarinë tënde</h2><p class="mu">Regjistrohu me email real. Pas konfirmimit, do të kesh panelin tënd personal me të gjitha funksionet.</p><div style="display:grid;gap:10px"><input type="text" id="fullname" placeholder="Emri (opsional)" autocomplete="name"><input type="email" id="regemail" placeholder="Email real" autocomplete="email"><input type="password" id="regpass" placeholder="Fjalëkalimi (min. 8 karaktere)" autocomplete="new-password"><input type="password" id="regpass2" placeholder="Konfirmo fjalëkalimin" autocomplete="new-password"><button class="btn" id="createaccount">Regjistrohu</button><button class="btn g" id="backlogin" type="button">Kthehu te hyrja</button><div class="mu" id="er" style="color:var(--er)"></div><div class="mu" id="regmsg">${message||''}</div></div></div>`;
@@ -262,7 +268,7 @@ const M=h=>modal=`<div class="mod" data-a="x"><div class="box">${h}</div></div>`
 const DR=(f='',t='')=>`<div class="row" style="margin-top:12px;gap:10px"><div class="sp"><div class="mu">Aktive nga</div><input type="date" id="df" value="${f||''}"></div><div class="sp"><div class="mu">Deri më</div><input type="date" id="dt" value="${t||''}"></div></div>`;
 function pubApply(c,id,bz,ch,df,dt){Object.keys(c.devices).filter(k=>c.devices[k].biz===bz).forEach(k=>{const d=c.devices[k];d.playlist=(d.playlist||[]).filter(i=>i!==id);d.sched=d.sched||{};delete d.sched[id];if(ch.includes(k)){d.playlist.push(id);if(df||dt)d.sched[id]={from:df,to:dt}}})}
 function fillPm(){const c=cfg(),b=$('#bz')?$('#bz').value:me().biz,w=$('#pmw');if(w)w.innerHTML=Object.keys(c.devices).filter(k=>c.devices[k].biz===b).map(k=>`<label class="chk"><input type="checkbox" class="pm" value="${k}" checked><span class="sp">${esc(c.devices[k].name)}</span><span class="mu">${k}</span></label>`).join('')||'<p class="mu">Asnjë monitor në këtë biznes.</p>'}
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b||(b.classList.contains('mod')&&e.target!==b))return;const a=b.dataset.a,k=b.dataset.k,c=cfg(),u=me(),A=u&&u.role==='admin';
+const dashboardAction=async e=>{const b=e.target.closest('[data-a]');if(!b||(b.classList.contains('mod')&&e.target!==b))return;const a=b.dataset.a,k=b.dataset.k,c=cfg(),u=me(),A=u&&u.role==='admin';
  if(a==='t')tab=k;else if(a==='out'){await sb.auth.signOut();cloudAdmin=false;sessionStorage.clear();location.reload();return}else if(a==='x')modal=null;
  else if(a==='add')M(`<h3 style="margin-top:0">Shto monitor</h3><p class="mu">Shkruaj kodin 6-shifror që shfaqet në TV (çdo pajisje ka kodin e vet unik).</p><input type="text" id="cd" inputmode="numeric" maxlength="6" class="code" placeholder="••••••"><input type="text" id="nm" placeholder="Emri (p.sh. Lobi)" style="margin-top:10px">${A?`<select id="bz" style="${SS};margin-top:10px">${opt(c)}</select>`:''}<div class="mu" id="er" style="color:var(--er);margin:8px 0"></div>${BT('addok')}`);
  else if(a==='addok'){const cd=$('#cd').value.trim(),nm=$('#nm').value.trim()||'Monitor '+(Object.keys(c.devices).length+1),bz=A?$('#bz')?.value:u.biz;
@@ -292,7 +298,10 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]')
  else if(a==='um'){const x=c.users.find(w=>w.id===k);M(`<h3 style="margin-top:0">Monitorët e ${esc(x.name)}</h3><p class="mu">Reklamuesi sheh vetëm këta monitorë (pa mundësi ndryshimi).</p>${Object.keys(c.devices).filter(m=>c.devices[m].biz===x.biz).map(m=>`<label class="chk"><input type="checkbox" value="${m}" ${(x.monitors||[]).includes(m)?'checked':''}><span class="sp">${esc(c.devices[m].name)}</span><span class="mu">${m}</span></label>`).join('')||'<p class="mu">Asnjë monitor në këtë biznes.</p>'}${BT('umok',k)}`)}
  else if(a==='umok'){c.users.find(w=>w.id===k).monitors=[...document.querySelectorAll('.box input[type=checkbox]:checked')].map(i=>i.value);wr(KC,c);modal=null}
  else if(a==='du'){if(confirm('Fshi përdoruesin?')){c.users=c.users.filter(w=>w.id!==k);wr(KC,c)}}
- draw();if(a==='na')fillPm()});
+ draw();if(a==='na')fillPm()};
+ let lastTouchAction=0;
+ document.addEventListener('pointerup',e=>{if(e.pointerType==='touch'||e.pointerType==='pen'){lastTouchAction=Date.now();dashboardAction(e)}});
+ document.addEventListener('click',e=>{if(Date.now()-lastTouchAction<800)return;dashboardAction(e)});
 (function(){
 const KEY='aksesi_language';
 const supported=['sq','de','en'];
