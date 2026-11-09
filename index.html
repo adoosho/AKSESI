@@ -326,17 +326,24 @@ route();
    showLoadError(error&&error.message?error.message:'Gabim gjatë hapjes së aplikacionit.');
   }
  }
+ let fallbackStarted=false, loadFinished=false;
  function loadFallback(){
+  if(fallbackStarted||started)return;
+  fallbackStarted=true;
   const fallback=document.createElement('script');
+  const fallbackTimer=setTimeout(()=>{
+   if(!loadFinished&&!started)showLoadError('Shërbimi i hyrjes nuk po përgjigjet. Kontrollo internetin dhe shtyp Provo përsëri.');
+  },10000);
   fallback.src='https://unpkg.com/@supabase/supabase-js@2';
-  fallback.onload=boot;
-  fallback.onerror=()=>showLoadError('Nuk mund të lidhet me shërbimin e hyrjes. Kontrollo internetin ose provo pas pak.');
+  fallback.onload=()=>{loadFinished=true;clearTimeout(fallbackTimer);boot()};
+  fallback.onerror=()=>{loadFinished=true;clearTimeout(fallbackTimer);showLoadError('Nuk u arrit të ngarkohet shërbimi i hyrjes nga dy burimet. Kontrollo internetin dhe provo përsëri.')};
   document.head.appendChild(fallback);
  }
  const primary=document.createElement('script');
+ const primaryTimer=setTimeout(()=>{if(!started&&!fallbackStarted)loadFallback()},8000);
  primary.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
- primary.onload=boot;
- primary.onerror=loadFallback;
+ primary.onload=()=>{clearTimeout(primaryTimer);loadFinished=true;boot()};
+ primary.onerror=()=>{clearTimeout(primaryTimer);loadFallback()};
  document.head.appendChild(primary);
 })();
 </script></body></html>
