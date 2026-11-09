@@ -187,7 +187,8 @@ function login(message=''){
   $('#er').textContent='';
   try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await admin()}catch(e){$('#er').textContent=e.message||'Hyrja dështoi.'}
  };
- $('#register').onclick=()=>registerScreen();\n $('#forgot').onclick=async()=>{
+ $('#register').onclick=()=>registerScreen();
+ $('#forgot').onclick=async()=>{
   const email=$('#email').value.trim();
   if(!email)return $('#er').textContent='Shkruaj emailin për rikuperim.';
   $('#er').textContent='';
