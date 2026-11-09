@@ -5,15 +5,41 @@
   "main": "main.js",
   "author": "AKSESI",
   "license": "UNLICENSED",
-  "scripts": {"start": "electron .", "dist": "electron-builder"},
-  "devDependencies": {"electron": "^35.0.0", "electron-builder": "^26.0.12"},
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.12"
+  },
   "build": {
     "appId": "space.aksesi.player",
     "productName": "AKSESI Player",
-    "directories": {"output": "dist"},
-    "files": ["main.js", "preload.js", "package.json"],
-    "win": {"target": ["nsis", "portable"]},
-    "mac": {"target": ["dmg", "zip"]},
-    "nsis": {"oneClick": true, "perMachine": false, "allowToChangeInstallationDirectory": true}
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
