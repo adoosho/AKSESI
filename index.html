@@ -183,8 +183,8 @@ async function admin(){
   const adminUser=state.users.find(x=>x.role==='admin')||state.users[0];
   sessionStorage.setItem('sig_in',adminUser.id);
   cloudLoading=false;
-  await refreshPresence();
   draw();
+  refreshPresence();
   setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},1000);
   setInterval(refreshPresence,5000);
   addEventListener('storage',()=>{if(!modal)draw()});
