@@ -1,0 +1,33 @@
+name: Build AKSESI iOS Player
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios-player/**"
+      - ".github/workflows/build-ios-player.yml"
+  workflow_dispatch:
+
+jobs:
+  build-ios-simulator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build iOS Simulator app
+        run: |
+          xcodebuild \
+            -project ios-player/AKSESI.xcodeproj \
+            -scheme AKSESI \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Package simulator app
+        run: |
+          cd build/ios/Build/Products/Release-iphonesimulator
+          zip -r "$GITHUB_WORKSPACE/AKSESI-iOS-Simulator.zip" AKSESI.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aksesi-ios-simulator-build
+          path: AKSESI-iOS-Simulator.zip
+          retention-days: 30
