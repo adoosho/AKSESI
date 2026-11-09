@@ -8,7 +8,7 @@
 button,input,select{font:inherit;color:inherit}
 .btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer}
 .btn.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}.btn.d{background:transparent;color:var(--er);border:1px solid var(--bd)}.btn.s{padding:6px 12px;font-size:13px}
-input[type=text],input[type=password],input[type=number],input[type=date]{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--sf)}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=date]{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--sf)}
 .wrap{max-width:1100px;margin:0 auto;padding:16px}
 .top{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--sf);border-bottom:1px solid var(--bd);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .logo{font-weight:800;font-size:18px;display:flex;gap:8px;align-items:center}.logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#06b6d4);display:inline-block}
@@ -95,7 +95,7 @@ function cfg(){
 }
 const adBG=a=>a.img?`background-image:url(${a.img})`:`background:${a.bg}`;
 const adHTML=a=>`<div class="ad" style="${adBG(a)}"><h1>${esc(a.title)}</h1><p>${esc(a.sub)}</p></div>`;
-function route(){const h=location.hash.slice(1);if(h==='player')player();else if(h==='admin')admin();else admin()}
+function route(){if(location.hash.includes('type=recovery')){resetPasswordScreen();return}const h=location.hash.slice(1);if(h==='player')player();else if(h==='admin')admin();else admin()}
 addEventListener('hashchange',()=>location.reload());
 function home(){$('#app').innerHTML=`<div class="wrap"><div class="logo" style="justify-content:center;font-size:26px;margin-top:6vh"><i></i>Aksesi</div><p class="mu" style="text-align:center">Menaxhim profesional i monitorëve reklamues</p>
 <div class="pick"><button onclick="location.hash='player';">📺<b>Aplikacioni i Monitorit (Player)</b><span class="mu">Instalohet në TV (Android 5.0+). Shfaq kodin 6-shifror për çiftim.</span></button>
@@ -180,16 +180,27 @@ async function admin(){
  }catch(e){cloudAdmin=false;cloudLoading=false;login(e.message)}
 }
 function login(message=''){
- $('#app').innerHTML=`<div class="login"><div style="background:#1b1b1c;border-radius:14px;padding:18px 20px;margin-bottom:6px;border-bottom:3px solid var(--ac)"><img src="${LOGOW}" alt="Aksesi" style="height:44px;display:block;margin:0 auto"></div><h2 style="margin:18px 0 4px">Hyr në Aksesi</h2><p class="mu">Hyrje e sigurt me link në emailin e administratorit.</p><div style="display:grid;gap:10px"><input type="email" id="email" placeholder="Email i administratorit" autocomplete="email"><button class="btn" id="go">Dërgo konfirmimin</button><div class="mu" id="er" style="color:var(--er)"></div><div class="mu" id="cloudmsg">${message||''}</div></div></div>`;
+ $('#app').innerHTML=`<div class="login"><div style="background:#1b1b1c;border-radius:14px;padding:18px 20px;margin-bottom:6px;border-bottom:3px solid var(--ac)"><img src="${LOGOW}" alt="Aksesi" style="height:44px;display:block;margin:0 auto"></div><h2 style="margin:18px 0 4px">Hyr në Aksesi</h2><p class="mu">Hyr me email dhe fjalëkalim.</p><div style="display:grid;gap:10px"><input type="email" id="email" placeholder="Email" autocomplete="username"><input type="password" id="password" placeholder="Fjalëkalimi" autocomplete="current-password"><button class="btn" id="go">Hyr</button><button class="btn g" id="forgot" type="button">Kam harruar fjalëkalimin</button><div class="mu" id="er" style="color:var(--er)"></div><div class="mu" id="cloudmsg">${message||''}</div></div></div>`;
  $('#go').onclick=async()=>{
-  const email=$('#email').value.trim();
-  if(!email)return $('#er').textContent='Shkruaj emailin.';
+  const email=$('#email').value.trim(),password=$('#password').value;
+  if(!email||!password)return $('#er').textContent='Shkruaj emailin dhe fjalëkalimin.';
   $('#er').textContent='';
-  try{
-   const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:'https://aksesi.space/'}});
-   if(error)throw error;
-   $('#cloudmsg').textContent='Konfirmimi u dërgua. Hape emailin dhe shtyp “Hap Aksesi” për të hyrë direkt.';
-  }catch(e){$('#er').textContent=e.message||'Dërgimi i emailit dështoi.'}
+  try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await admin()}catch(e){$('#er').textContent=e.message||'Hyrja dështoi.'}
+ };
+ $('#forgot').onclick=async()=>{
+  const email=$('#email').value.trim();
+  if(!email)return $('#er').textContent='Shkruaj emailin për rikuperim.';
+  $('#er').textContent='';
+  try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://aksesi.space/'});if(error)throw error;$('#cloudmsg').textContent='U dërgua emaili për rivendosjen e fjalëkalimit. Kontrollo Inbox dhe Spam.'}catch(e){$('#er').textContent=e.message||'Emaili i rikuperimit nuk u dërgua.'}
+ };
+}
+function resetPasswordScreen(){
+ $('#app').innerHTML=`<div class="login"><h2>Vendos fjalëkalim të ri</h2><p class="mu">Shkruaj fjalëkalimin e ri për llogarinë tënde.</p><div style="display:grid;gap:10px"><input type="password" id="newpass" placeholder="Fjalëkalimi i ri" autocomplete="new-password"><input type="password" id="newpass2" placeholder="Përsërite fjalëkalimin" autocomplete="new-password"><button class="btn" id="savepass">Ruaj fjalëkalimin</button><div class="mu" id="er" style="color:var(--er)"></div></div></div>`;
+ $('#savepass').onclick=async()=>{
+  const password=$('#newpass').value,password2=$('#newpass2').value;
+  if(password.length<6)return $('#er').textContent='Fjalëkalimi duhet të ketë së paku 6 karaktere.';
+  if(password!==password2)return $('#er').textContent='Fjalëkalimet nuk përputhen.';
+  try{const {error}=await sb.auth.updateUser({password});if(error)throw error;await sb.auth.signOut();history.replaceState(null,'',location.pathname+'#admin');login('Fjalëkalimi u ndryshua. Hyr me fjalëkalimin e ri.')}catch(e){$('#er').textContent=e.message||'Nuk u ruajt fjalëkalimi.'}
  };
 }
 const online=c=>{const d=rd('sig_dev_'+c,null);return d&&d.status==='online'&&Number.isFinite(Number(d.seen))&&Date.now()-Number(d.seen)<60000?d:null};
