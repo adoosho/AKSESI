@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "android-player/**"
+      - "player.html"
       - ".github/workflows/build-player-apk.yml"
   workflow_dispatch:
 
