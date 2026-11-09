@@ -13,7 +13,7 @@
   A10000000000000000000007 /* AKSESI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AKSESI.app; sourceTree = BUILT_PRODUCTS_DIR;};
   A10000000000000000000008 /* Sources build phase */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000014, A10000000000000000000015,); runOnlyForDeploymentPostprocessing = 0;};
   A10000000000000000000009 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
-  A1000000000000000000000A /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000016,); runOnlyForDeploymentPostprocessing = 0;};
+  A1000000000000000000000A /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
   A10000000000000000000011 /* AKSESIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AKSESIApp.swift; sourceTree = "<group>";};
   A10000000000000000000012 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>";};
   A10000000000000000000014 /* AKSESIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011;};
@@ -31,7 +31,7 @@
   A10000000000000000000013 /* Target configs */ = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000022, A10000000000000000000023,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
   A10000000000000000000020 /* Project Debug */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.9;}; name = Debug;};
   A10000000000000000000021 /* Project Release */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.9;}; name = Release;};
-  A10000000000000000000022 /* Target Debug */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = AKSESI/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_BUNDLE_IDENTIFIER = space.aksesi.player; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.9; TARGETED_DEVICE_FAMILY = "1,2"; SUPPORTS_MACCATALYST = NO;}; name = Debug;};
+  A10000000000000000000022 /* Target Debug */ = {isa = XCBuildConfiguration; buildSettings = {GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = AKSESI/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_BUNDLE_IDENTIFIER = space.aksesi.player; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.9; TARGETED_DEVICE_FAMILY = "1,2"; SUPPORTS_MACCATALYST = NO;}; name = Debug;};
   A10000000000000000000023 /* Target Release */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = AKSESI/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_BUNDLE_IDENTIFIER = space.aksesi.player; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.9; TARGETED_DEVICE_FAMILY = "1,2"; SUPPORTS_MACCATALYST = NO;}; name = Release;};
  };
  rootObject = A10000000000000000000001;
