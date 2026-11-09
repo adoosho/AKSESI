@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="sq"><head><meta charset="utf-8"><title>Aksesi Player</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#d9004c">
 <style>
 :root{--bg:#f5f5f7;--sf:#fff;--tx:#1b1b1c;--mu:#6b6b72;--bd:#e6e6ea;--ac:#d9004c;--ok:#16a34a;--er:#b91c1c;--sh:0 2px 14px rgba(27,27,28,.07);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e0e10;--sf:#1a1a1d;--tx:#f2f2f4;--mu:#9a9aa3;--bd:#2c2c31;--ac:#ff2d6f;--sh:0 4px 20px rgba(0,0,0,.5);color-scheme:dark}}
@@ -71,7 +72,7 @@ const adBG=a=>a.img&&a.mediaType!=='video'?`background-image:url('${a.img}')`:`b
 const adHTML=a=>'<div class="ad" style="'+adBG(a)+'">'+(a.mediaType==='video'&&a.img?'<video src="'+esc(a.img)+'" autoplay muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>':'')+(a.title?'<h1 style="position:relative;z-index:1">'+esc(a.title)+'</h1>':'')+(a.sub?'<p style="position:relative;z-index:1">'+esc(a.sub)+'</p>':'')+'</div>';
 function route(){player()}
 addEventListener('hashchange',()=>location.reload());
-function home(){$('#app').innerHTML=`<div class="wrap"><div class="logo" style="justify-content:center;font-size:26px;margin-top:6vh"><i></i>Aksesi</div><p class="mu" style="text-align:center">Menaxhim profesional i monitorëve reklamues</p>
+function home(){$('#app').innerHTML=`<div class="wrap"><div class="logo" style="justify-content:center;font-size:26px;margin-top:6vh"><img src="/favicon.png" alt="AKSESI" style="width:44px;height:44px;object-fit:contain">AKSESI</div><p class="mu" style="text-align:center">Menaxhim profesional i monitorëve reklamues</p>
 <div class="pick"><button onclick="location.hash='player';">📺<b>Aplikacioni i Monitorit (Player)</b><span class="mu">Instalohet në TV (Android 5.0+). Shfaq kodin 6-shifror për çiftim.</span></button>
 <button onclick="location.hash='admin';">🖥️<b>Paneli i Menaxhimit (Admin)</b><span class="mu">Login, shto monitorë, menaxho reklamat nga distanca.</span></button></div>
 <p class="mu" style="text-align:center">Demo: hap Player në një skedë/dritare dhe Admin në tjetrën.</p></div>`}
