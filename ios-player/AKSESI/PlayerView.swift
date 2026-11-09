@@ -32,7 +32,6 @@ struct PlayerView: View {
             }
         }
         .statusBarHidden(true)
-        .persistentSystemOverlays(.hidden)
         .onAppear {
             UIApplication.shared.isIdleTimerDisabled = true
         }
