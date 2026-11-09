@@ -9,6 +9,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.JavascriptInterface
+import android.content.Context
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.content.Intent
@@ -16,6 +18,29 @@ import android.net.Uri
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+
+    private class AksesiStore(context: Context) {
+        private val prefs = context.getSharedPreferences("aksesi_player_secure", Context.MODE_PRIVATE)
+        private val allowed = setOf("sig_pcode", "sig_ptoken", "sig_ptoken_code")
+
+        @JavascriptInterface
+        fun get(key: String): String {
+            if (key !in allowed) return ""
+            return prefs.getString(key, "") ?: ""
+        }
+
+        @JavascriptInterface
+        fun set(key: String, value: String) {
+            if (key !in allowed || value.length > 512) return
+            if ((key == "sig_pcode" || key == "sig_ptoken_code") && !value.matches(Regex("[0-9]{6}"))) return
+            prefs.edit().putString(key, value).apply()
+        }
+
+        @JavascriptInterface
+        fun remove(key: String) {
+            if (key in allowed) prefs.edit().remove(key).apply()
+        }
+    }
 
     @Suppress("DEPRECATION")
     private fun enterImmersiveMode() {
@@ -44,6 +69,7 @@ class MainActivity : Activity() {
         webView.settings.databaseEnabled = true
         webView.settings.loadsImagesAutomatically = true
         webView.settings.mediaPlaybackRequiresUserGesture = false
+        webView.addJavascriptInterface(AksesiStore(this), "AksesiStore")
         webView.settings.allowFileAccess = false
         webView.settings.allowContentAccess = false
         webView.webChromeClient = WebChromeClient()
