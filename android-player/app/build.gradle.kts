@@ -11,14 +11,26 @@ android {
         applicationId = "com.aksesi.player"
         minSdk = 21
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
+    }
+
+    flavorDimensions += "device"
+    productFlavors {
+        create("googleTv") {
+            dimension = "device"
+            resValue("string", "app_name", "AKSESI Player")
+        }
+        create("fireTv") {
+            dimension = "device"
+            applicationIdSuffix = ".firetv"
+            versionNameSuffix = "-firetv"
+            resValue("string", "app_name", "AKSESI Player for Fire TV")
+        }
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
-        }
+        release { isMinifyEnabled = false }
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
@@ -29,8 +41,5 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 }
