@@ -157,7 +157,7 @@ async function admin(){
   cloudAdmin=true;
   cloudLoading=true;
   const remote=await adminCall('admin_get');
-  let state=remote.data||{};
+  let state=remote.data?.data||remote.data||{};
   const local=rd(KC,null);
   const validRemote=Array.isArray(state.ads)&&state.devices&&typeof state.devices==='object'&&Array.isArray(state.biz)&&Array.isArray(state.users);
   if(!validRemote){
