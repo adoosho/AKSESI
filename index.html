@@ -126,7 +126,7 @@ function player(){
     if(result.data)localStorage.setItem(KC,JSON.stringify(result.data));
     if(result.removed){localStorage.removeItem('sig_pcode');localStorage.removeItem('sig_ptoken');location.reload();return}
    }
-  }catch(e){console.warn('Aksesi sync:',e.message)}
+  }catch(e){console.warn('Aksesi sync:',e.message);if(/autorizimi|authorization|401/i.test(String(e.message||''))){localStorage.removeItem('sig_ptoken');pToken=null;pRegistered=false}}
   finally{pBusy=false}
  };
  function tick(){const c=cfg(),d=c.devices[code];
