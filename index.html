@@ -336,8 +336,12 @@ const dashboardAction=async e=>{const b=e.target.closest('[data-a]');if(!b||(b.c
  else if(a==='du'){if(confirm('Fshi përdoruesin?')){c.users=c.users.filter(w=>w.id!==k);wr(KC,c)}}
  draw();if(a==='na')fillPm()};
  let lastTouchAction=0;
- document.addEventListener('pointerup',e=>{if(e.pointerType==='touch'||e.pointerType==='pen'){lastTouchAction=Date.now();dashboardAction(e)}});
- document.addEventListener('click',e=>{if(Date.now()-lastTouchAction<800)return;dashboardAction(e)});
+ window.aksesiDashboardAction=dashboardAction;
+ if(!window.aksesiDashboardListeners){
+  window.aksesiDashboardListeners=true;
+  document.addEventListener('pointerup',e=>{if(e.pointerType==='touch'||e.pointerType==='pen'){lastTouchAction=Date.now();window.aksesiDashboardAction?.(e)}});
+  document.addEventListener('click',e=>{if(Date.now()-lastTouchAction<800)return;window.aksesiDashboardAction?.(e)});
+ }
 (function(){
 const KEY='aksesi_language';
 const supported=['sq','de','en'];
