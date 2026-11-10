@@ -48,8 +48,8 @@ jobs:
             adb install -r android-player/app/build/outputs/apk/googleTv/debug/app-googleTv-debug.apk
             adb shell am start -n com.aksesi.player.debug/com.aksesi.player.MainActivity
             sleep 12
-            adb shell screencap -p /sdcard/aksesi-player.png
-            adb pull /sdcard/aksesi-player.png aksesi-player-api22.png
+            adb shell screencap -p /data/local/tmp/aksesi-player.png
+            adb pull /data/local/tmp/aksesi-player.png aksesi-player-api22.png
             sudo apt-get update
             sudo apt-get install -y tesseract-ocr
             tesseract aksesi-player-api22.png stdout > aksesi-player-ocr.txt
