@@ -120,7 +120,21 @@ class MainActivity : Activity() {
             )
         )
         setContentView(root)
-        webView.loadUrl("https://www.aksesi.space/player-legacy.html")
+        // Load the player bundled in the APK. Android 5.1 WebView can fail on
+        // modern remote hosting/TLS even when the device browser appears online.
+        // A trusted HTTPS base keeps the page origin stable for Supabase requests.
+        try {
+            val html = assets.open("player-legacy.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
+            webView.loadDataWithBaseURL(
+                "https://www.aksesi.space/",
+                html,
+                "text/html",
+                "UTF-8",
+                null
+            )
+        } catch (_: Exception) {
+            showError()
+        }
     }
 
     private fun showError() {
