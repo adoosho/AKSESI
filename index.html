@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="sq"><head><meta charset="utf-8"><title>Aksesi – Menaxhim Monitorësh</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://bnrogtqhxbqinrtzwblv.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="//unpkg.com">
 <link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#d9004c">
 <link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#d9004c">
 <style>
@@ -368,7 +373,7 @@ route();
   document.head.appendChild(fallback);
  }
  const primary=document.createElement('script');
- const primaryTimer=setTimeout(()=>{if(!started&&!fallbackStarted)loadFallback()},8000);
+ const primaryTimer=setTimeout(()=>{if(!started&&!fallbackStarted)loadFallback()},3500);
  primary.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
  primary.onload=()=>{clearTimeout(primaryTimer);loadFinished=true;boot()};
  primary.onerror=()=>{clearTimeout(primaryTimer);loadFallback()};
