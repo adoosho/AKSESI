@@ -93,6 +93,7 @@ class MainActivity : Activity() {
             view.setOnErrorListener { _, what, extra ->
                 Log.e("AKSESI_VIDEO", "VIDEO_ERROR zone=$zone what=$what extra=$extra")
                 removeNativeVideo(zone)
+                webView.post { webView.evaluateJavascript("window.aksesiNativeVideoError && window.aksesiNativeVideoError($zone)", null) }
                 true
             }
             nativeVideos[zone] = view
