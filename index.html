@@ -170,46 +170,36 @@ async function admin(sessionOverride=null){
   const session=sessionOverride||(await sb.auth.getSession()).data.session;
   if(!session)return login();
   const uid=session.user?.id;
-  if(!uid)throw new Error('Sesioni nuk përmban identitetin e përdoruesit. Hyr përsëri.');
+  if(!uid)throw new Error('Sesioni nuk është valid. Hyr përsëri.');
   cloudAdmin=true;
   cloudLoading=true;
   const cacheKey='sig_cfg_user_'+uid;
+  const validState=s=>!!s&&Array.isArray(s.ads)&&s.devices&&typeof s.devices==='object'&&Array.isArray(s.biz)&&Array.isArray(s.users)&&s.users.some(x=>x.id===uid);
   const cached=rd(cacheKey,null);
-  const bizId='b'+String(uid).replaceAll('-','').slice(0,12);
-  const fallbackName=String(session.user.user_metadata?.name||session.user.email||'Përdorues').split('@')[0];
-  const fastState=cached&&Array.isArray(cached.ads)&&cached.devices&&typeof cached.devices==='object'&&Array.isArray(cached.biz)&&Array.isArray(cached.users)
-   ?cached
-   :{ads:[],devices:{},biz:[{id:bizId,name:fallbackName}],users:[{id:uid,name:fallbackName,user:session.user.email||'',role:'admin',biz:bizId,monitors:[]}]};
-  localStorage.setItem(KC,JSON.stringify(fastState));
-  sessionStorage.setItem('sig_in',uid);
-  draw();
-  await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-  const remote=await adminCall('admin_get',{},session);
-  let state=remote.data?.data||remote.data||{};
-  const validRemote=Array.isArray(state.ads)&&state.devices&&typeof state.devices==='object'&&Array.isArray(state.biz)&&Array.isArray(state.users);
-  if(!validRemote){
-   state=fastState;
-   if(!state.biz.length)state.biz=[{id:bizId,name:'Aksesi'}];
-   if(!state.users.length)state.users=fastState.users;
-   await adminCall('admin_save',{data:state},session);
-  }else{
-   if(!state.biz.length)state.biz=[{id:bizId,name:'Aksesi'}];
-   if(!state.users.some(x=>x.id===uid)){
-    state.users.unshift({id:uid,name:fallbackName,user:session.user.email||'',role:'admin',biz:state.biz[0].id,monitors:[]});
-   }
+  if(validState(cached)){
+   localStorage.setItem(KC,JSON.stringify(cached));
+   sessionStorage.setItem('sig_in',uid);
+   draw();
   }
+  const remote=await adminCall('admin_get',{},session);
+  const state=remote?.data?.data;
+  if(!validState(state))throw new Error('Të dhënat e llogarisë nuk u lexuan saktë. Provo përsëri.');
   localStorage.setItem(KC,JSON.stringify(state));
   localStorage.setItem(cacheKey,JSON.stringify(state));
-  const adminUser=state.users.find(x=>x.id===uid)||state.users.find(x=>x.role==='admin')||state.users[0];
-  if(!adminUser)throw new Error('Nuk u gjet profili i administratorit.');
-  sessionStorage.setItem('sig_in',adminUser.id);
+  sessionStorage.setItem('sig_in',uid);
   cloudLoading=false;
   draw();
   refreshPresence();
-  setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},5000);
-  setInterval(refreshPresence,5000);
-  addEventListener('storage',()=>{if(!modal)draw()});
- }catch(e){cloudAdmin=false;cloudLoading=false;login(e.message)}
+  if(!window.aksesiIntervalsStarted){
+   window.aksesiIntervalsStarted=true;
+   setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},5000);
+   setInterval(refreshPresence,5000);
+   addEventListener('storage',()=>{if(!modal)draw()});
+  }
+ }catch(e){
+  cloudAdmin=false;cloudLoading=false;
+  login(e.message||'Nuk u hap paneli. Provo përsëri.');
+ }
 }
 function bindTap(el,handler){
  if(!el)return;
