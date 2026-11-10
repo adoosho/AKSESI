@@ -4,8 +4,11 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
@@ -14,10 +17,13 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.VideoView
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
     private lateinit var root: FrameLayout
+    private val nativeVideos = HashMap<Int, VideoView>()
+    private val nativeVideoUrls = HashMap<Int, String>()
 
     private class AksesiStore(context: Context) {
         private val prefs = context.getSharedPreferences("aksesi_player_secure", Context.MODE_PRIVATE)
@@ -41,6 +47,80 @@ class MainActivity : Activity() {
         fun remove(key: String) {
             if (key in allowed) prefs.edit().remove(key).apply()
         }
+    }
+
+    private inner class AksesiMedia {
+        @JavascriptInterface
+        fun play(zone: Int, url: String, left: Float, top: Float, width: Float, height: Float) {
+            if (zone !in 0..3 || !isAllowedMediaUrl(url)) return
+            if (width <= 0f || height <= 0f || width > 5000f || height > 5000f) return
+            runOnUiThread { showNativeVideo(zone, url, left, top, width, height) }
+        }
+
+        @JavascriptInterface
+        fun stop(zone: Int) {
+            if (zone !in 0..3) return
+            runOnUiThread { removeNativeVideo(zone) }
+        }
+    }
+
+    private fun isAllowedMediaUrl(url: String): Boolean {
+        return try {
+            val uri = Uri.parse(url)
+            uri.scheme == "https" &&
+                uri.host == "bnrogtqhxbqinrtzwblv.supabase.co" &&
+                (uri.path ?: "").contains("/storage/v1/object/")
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun showNativeVideo(zone: Int, url: String, left: Float, top: Float, width: Float, height: Float) {
+        val density = resources.displayMetrics.density
+        val video = nativeVideos[zone] ?: VideoView(this).also { view ->
+            view.setBackgroundColor(Color.BLACK)
+            view.setOnPreparedListener { player: MediaPlayer ->
+                player.setVolume(0f, 0f)
+                player.isLooping = true
+                view.start()
+                Log.i("AKSESI_VIDEO", "VIDEO_PREPARED zone=$zone duration=${player.duration}")
+            }
+            view.setOnErrorListener { _, what, extra ->
+                Log.e("AKSESI_VIDEO", "VIDEO_ERROR zone=$zone what=$what extra=$extra")
+                removeNativeVideo(zone)
+                true
+            }
+            nativeVideos[zone] = view
+            root.addView(view)
+        }
+
+        val params = (video.layoutParams as? FrameLayout.LayoutParams)
+            ?: FrameLayout.LayoutParams(1, 1)
+        params.width = (width * density).toInt().coerceAtLeast(1)
+        params.height = (height * density).toInt().coerceAtLeast(1)
+        params.gravity = Gravity.TOP or Gravity.LEFT
+        params.leftMargin = (left * density).toInt()
+        params.topMargin = (top * density).toInt()
+        video.layoutParams = params
+
+        if (nativeVideoUrls[zone] != url) {
+            nativeVideoUrls[zone] = url
+            video.visibility = View.VISIBLE
+            video.setVideoURI(Uri.parse(url))
+            video.requestFocus()
+        } else if (video.visibility != View.VISIBLE) {
+            video.visibility = View.VISIBLE
+        }
+    }
+
+    private fun removeNativeVideo(zone: Int) {
+        val video = nativeVideos.remove(zone) ?: return
+        nativeVideoUrls.remove(zone)
+        try {
+            video.stopPlayback()
+        } catch (_: Exception) {
+        }
+        root.removeView(video)
     }
 
     @Suppress("DEPRECATION")
@@ -91,9 +171,9 @@ class MainActivity : Activity() {
         webView.settings.allowFileAccess = false
         webView.settings.allowContentAccess = false
         webView.addJavascriptInterface(AksesiStore(this), "AksesiStore")
+        webView.addJavascriptInterface(AksesiMedia(), "AksesiMedia")
         webView.webChromeClient = WebChromeClient()
         webView.webViewClient = object : WebViewClient() {
-            // Android 5.1 and earlier use the String overload.
             @Suppress("DEPRECATION")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 return handleNavigation(url)
@@ -109,7 +189,6 @@ class MainActivity : Activity() {
                 val failed = failingUrl ?: return
                 if (failed.contains("/player-legacy.html")) showError()
             }
-
         }
 
         root.addView(
@@ -120,9 +199,6 @@ class MainActivity : Activity() {
             )
         )
         setContentView(root)
-        // Load the player bundled in the APK. Android 5.1 WebView can fail on
-        // modern remote hosting/TLS even when the device browser appears online.
-        // A trusted HTTPS base keeps the page origin stable for Supabase requests.
         try {
             val html = assets.open("player-legacy.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
             webView.loadDataWithBaseURL(
@@ -139,11 +215,12 @@ class MainActivity : Activity() {
 
     private fun showError() {
         runOnUiThread {
+            nativeVideos.keys.toList().forEach { removeNativeVideo(it) }
             val message = TextView(this).apply {
                 text = "Nuk mund të hapet AKSESI. Kontrollo internetin dhe prek ekranin për të provuar përsëri."
                 setTextColor(Color.WHITE)
                 textSize = 20f
-                gravity = android.view.Gravity.CENTER
+                gravity = Gravity.CENTER
                 setPadding(40, 40, 40, 40)
                 setBackgroundColor(Color.BLACK)
             }
@@ -181,6 +258,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        nativeVideos.keys.toList().forEach { removeNativeVideo(it) }
         webView.destroy()
         super.onDestroy()
     }
