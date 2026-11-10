@@ -9,16 +9,16 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090a10;color:#fff;font-family:Arial,Roboto,sans-serif}
 #stage{position:absolute;left:50%;top:50%;width:100vw;height:100vh;transform:translate(-50%,-50%);background:#090a10;overflow:hidden}
-#pair{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;padding:3%;background:#090a10}
-.panel{width:88%;max-width:1050px;text-align:center;padding:34px 24px;border:1px solid #393943;border-radius:22px;background:#1b1b23;box-shadow:0 10px 50px #000}
-.logo{height:54px;max-width:210px;object-fit:contain;background:#fff;border-radius:8px;padding:5px 10px}
-.kicker{margin-top:18px;color:#ff6b97;font-size:14px;font-weight:bold;letter-spacing:3px}
-h1{font-size:34px;line-height:1.2;margin:14px 0}
-.copy{font-size:18px;line-height:1.5;color:#c3c3ce;margin:8px auto 20px;max-width:760px}
-.digits{display:flex;justify-content:center;margin:20px 0}
-.digit{display:inline-block;width:64px;margin:0 5px;padding:12px 0;border:1px solid #555563;border-radius:10px;background:#30303b;font-size:42px;font-weight:bold}
-.status{color:#ff8bad;font-size:16px;margin-top:18px}
-.foot{color:#858592;font-size:13px;margin-top:18px}
+#pair{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;padding:3%;background:radial-gradient(ellipse at 72% 22%,rgba(185,0,75,.55) 0%,rgba(92,0,42,.22) 28%,transparent 54%),linear-gradient(115deg,#171719 0%,#242326 58%,#160d13 100%)}
+.panel{width:94%;max-width:1100px;text-align:center;padding:18px 12px;border:0;border-radius:0;background:transparent;box-shadow:none}
+.logo{display:block;height:auto;width:min(36vw,370px);max-width:370px;object-fit:contain;margin:0 auto 8px;background:transparent;border-radius:0;padding:0;filter:brightness(0) invert(1)}
+.kicker{display:none}
+h1{display:none}
+.copy{font-size:clamp(16px,2.1vw,25px);line-height:1.35;color:#f2f0ee;margin:0 auto 18px;max-width:900px;font-weight:bold}
+.digits{display:flex;justify-content:center;gap:7px;margin:18px 0 12px}
+.digit{display:flex;align-items:center;justify-content:center;width:clamp(48px,6.2vw,84px);height:clamp(58px,8vw,108px);margin:0;padding:0;border:1px solid rgba(255,255,255,.35);border-radius:11px;background:rgba(255,255,255,.13);font-size:clamp(34px,5vw,58px);font-weight:bold;color:#fff}
+.status{color:#ff9ab7;font-size:clamp(14px,1.7vw,20px);margin-top:14px}
+.foot{display:none}
 #zones{position:absolute;top:0;right:0;bottom:0;left:0;display:none}
 .zone{position:absolute;overflow:hidden;background:#000}
 .content{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
@@ -36,12 +36,9 @@ h1{font-size:34px;line-height:1.2;margin:14px 0}
  <div id="pair">
   <div class="panel">
    <img class="logo" src="/favicon.png" alt="AKSESI">
-   <div class="kicker">AKSESI TV - LIDHJA E MONITORIT</div>
-   <h1>Lidhe monitorin me panelin tënd</h1>
-   <p class="copy">Hape panelin AKSESI në telefon ose kompjuter dhe shtoje këtë monitor duke përdorur kodin më poshtë.</p>
+   <p class="copy">Shkruaj këtë kod në panelin Admin → Shto Monitor</p>
    <div class="digits" id="digits"></div>
-   <div class="status" id="status">Në pritje të lidhjes së sigurt...</div>
-   <div class="foot">Kodi është unik për këtë monitor - Mos e ndaj me persona të tjerë</div>
+   <div class="status" id="status">Në pritje të çiftimit...</div>
   </div>
  </div>
  <div id="zones"></div>
@@ -69,7 +66,7 @@ function beat(){if(busy)return;busy=true;
  }
  xhr('device_state',{},function(err,r){busy=false;if(err){lastError=err.message;if(/autorizimi|authorization|401/i.test(lastError)){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;registered=false;}return;}if(r&&r.data){config=r.data;try{localStorage.setItem(KEY,JSON.stringify(config));}catch(e){}render();}if(r&&r.removed){safeRemove('sig_pcode');safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');location.reload();}});
 }
-function poll(){xhr('device_poll',{},function(err,r){busy=false;if(err){lastError=err.message;return;}if(r&&r.token){token=r.token;safeSet('sig_ptoken',token);safeSet('sig_ptoken_code',code);}if(r&&r.expired){safeRemove('sig_pcode');location.reload();}});}
+function poll(){xhr('device_poll',{},function(err,r){busy=false;if(err){lastError=err.message;el('status').innerHTML='Lidhja me serverin dështoi. Po provohet përsëri...';return;}lastError='';el('status').innerHTML='Në pritje të çiftimit...';if(r&&r.token){token=r.token;safeSet('sig_ptoken',token);safeSet('sig_ptoken_code',code);}if(r&&r.expired){safeRemove('sig_pcode');location.reload();}});}
 function dateText(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
 function allowed(s){if(!s)return true;var now=new Date(),today=dateText(now),day=now.getDay(),hm=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);if(s.from&&s.from>today)return false;if(s.to&&s.to<today)return false;if(s.days&&s.days.length&&s.days.indexOf(day)<0)return false;var a=s.ts,b=s.te;if(a&&b)return a<=b?(hm>=a&&hm<b):(hm>=a||hm<b);if(a&&hm<a)return false;if(b&&hm>=b)return false;return true;}
 function setRotation(r){rotation=r;var st=el('stage'),side=(r===90||r===270);st.style.width=side?'100vh':'100vw';st.style.height=side?'100vw':'100vh';st.style.transform='translate(-50%,-50%) rotate('+r+'deg)';}
