@@ -40,10 +40,6 @@ jobs:
       - name: Build Fire TV APK
         working-directory: android-player
         run: gradle --no-daemon assembleFireTvDebug
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
       - name: Prepare H.264/AAC playback test video
         run: |
           if ! command -v ffmpeg >/dev/null 2>&1; then sudo apt-get install -y ffmpeg; fi
