@@ -366,7 +366,7 @@ route();
   const fallback=document.createElement('script');
   const fallbackTimer=setTimeout(()=>{
    if(!loadFinished&&!started)showLoadError('Shërbimi i hyrjes nuk po përgjigjet. Kontrollo internetin dhe shtyp Provo përsëri.');
-  },10000);
+  },4500);
   fallback.src='https://unpkg.com/@supabase/supabase-js@2';
   fallback.onload=()=>{loadFinished=true;clearTimeout(fallbackTimer);boot()};
   fallback.onerror=()=>{loadFinished=true;clearTimeout(fallbackTimer);showLoadError('Nuk u arrit të ngarkohet shërbimi i hyrjes nga dy burimet. Kontrollo internetin dhe provo përsëri.')};
