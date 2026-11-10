@@ -165,7 +165,7 @@ class MainActivity : Activity() {
                 }
                 val status = connection.responseCode
                 if (status !in 200..299) throw java.io.IOException("HTTP " + status)
-                val expected = connection.contentLengthLong
+                val expected = connection.contentLength.toLong()
                 if (expected > 250L * 1024L * 1024L) throw java.io.IOException("Video exceeds cache limit")
                 connection.inputStream.use { input ->
                     FileOutputStream(partial).use { output ->
