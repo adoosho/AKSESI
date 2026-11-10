@@ -84,6 +84,10 @@ class MainActivity : Activity() {
                 player.isLooping = true
                 view.start()
                 Log.i("AKSESI_VIDEO", "VIDEO_PREPARED zone=$zone duration=${player.duration}")
+                view.postDelayed({
+                    val advancing = try { view.isPlaying && view.currentPosition > 0 } catch (_: Exception) { false }
+                    Log.i("AKSESI_VIDEO", if (advancing) "VIDEO_PLAYING zone=$zone position=${view.currentPosition}" else "VIDEO_NOT_ADVANCING zone=$zone")
+                }, 1500)
             }
             view.setOnErrorListener { _, what, extra ->
                 Log.e("AKSESI_VIDEO", "VIDEO_ERROR zone=$zone what=$what extra=$extra")
@@ -210,6 +214,25 @@ class MainActivity : Activity() {
             )
         } catch (_: Exception) {
             showError()
+        }
+
+        // Debug-only API 22 playback test hook. The CI workflow supplies a short
+        // H.264/AAC file on the emulator; production builds ignore this extra.
+        if (BuildConfig.DEBUG && intent.action == "com.aksesi.player.TEST_VIDEO") {
+            val testPath = intent.getStringExtra("aksesi_test_video")
+            if (!testPath.isNullOrBlank() && testPath.startsWith("/sdcard/")) {
+                root.postDelayed({
+                    val density = resources.displayMetrics.density
+                    showNativeVideo(
+                        0,
+                        Uri.fromFile(java.io.File(testPath)).toString(),
+                        0f,
+                        0f,
+                        root.width / density,
+                        root.height / density
+                    )
+                }, 2500)
+            }
         }
     }
 
