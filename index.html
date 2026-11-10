@@ -360,9 +360,8 @@ const wrap=document.createElement('div');wrap.id='aksesi-language';wrap.innerHTM
 document.body.appendChild(wrap);const btn=wrap.querySelector('button'),sel=wrap.querySelector('select');sel.value=lang;
 btn.addEventListener('click',()=>{sel.hidden=!sel.hidden;});
 sel.addEventListener('change',()=>{lang=sel.value==='auto'?detect():sel.value;localStorage.setItem(KEY,lang);location.reload();});
-let translating=false;
-const obs=new MutationObserver(ms=>{if(translating)return;translating=true;try{for(const m of ms){if(m.type==='childList')m.addedNodes.forEach(translateNode);else if(m.type==='characterData')translateNode(m.target);}}finally{translating=false}});
-obs.observe(document.body,{subtree:true,childList:true,characterData:true});apply();
+const obs=new MutationObserver(ms=>{for(const m of ms){if(m.type==='childList')m.addedNodes.forEach(translateNode)}});
+obs.observe(document.body,{subtree:true,childList:true});apply();
 })();
 route();
 
