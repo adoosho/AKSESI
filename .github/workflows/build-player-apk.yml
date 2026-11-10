@@ -1,4 +1,4 @@
-name: Build Aksesi Android TV, Google TV and Fire TV APKs
+name: Build and test AKSESI Android TV player (Android 5.1)
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - "android-player/**"
       - "player.html"
+      - "player-legacy.html"
       - ".github/workflows/build-player-apk.yml"
   workflow_dispatch:
 
@@ -13,7 +14,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,32 +30,60 @@ jobs:
           packages: platform-tools platforms;android-35 build-tools;35.0.0
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Build Android TV and Google TV APK
+      - name: Build Google TV APK
         working-directory: android-player
         run: gradle --no-daemon assembleGoogleTvDebug
-      - name: Build Amazon Fire TV APK
+      - name: Build Fire TV APK
         working-directory: android-player
         run: gradle --no-daemon assembleFireTvDebug
-      - name: Upload Android TV / Google TV APK
+      - name: Test APK on Android 5.1 (API 22) emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 22
+          target: default
+          arch: x86
+          profile: tv_1080p
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none
+          script: |
+            adb install -r android-player/app/build/outputs/apk/googleTv/debug/app-googleTv-debug.apk
+            adb shell am start -n com.aksesi.player.debug/com.aksesi.player.MainActivity
+            sleep 12
+            adb shell screencap -p /sdcard/aksesi-player.png
+            adb pull /sdcard/aksesi-player.png aksesi-player-api22.png
+            sudo apt-get update
+            sudo apt-get install -y tesseract-ocr
+            tesseract aksesi-player-api22.png stdout > aksesi-player-ocr.txt
+            cat aksesi-player-ocr.txt
+            grep -Eiq "AKSESI|Lidhe monitorin" aksesi-player-ocr.txt
+      - name: Upload Android 5.1 emulator screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: aksesi-player-android-5.1-test
+          path: |
+            aksesi-player-api22.png
+            aksesi-player-ocr.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload Google TV APK
         uses: actions/upload-artifact@v4
         with:
           name: aksesi-android-google-tv-apk
           path: android-player/app/build/outputs/apk/googleTv/debug/*.apk
           if-no-files-found: error
           retention-days: 30
-      - name: Upload Amazon Fire TV APK
+      - name: Upload Fire TV APK
         uses: actions/upload-artifact@v4
         with:
           name: aksesi-amazon-fire-tv-apk
           path: android-player/app/build/outputs/apk/fireTv/debug/*.apk
           if-no-files-found: error
           retention-days: 30
-      - name: Publish APK downloads
+      - name: Publish tested APK downloads
         uses: softprops/action-gh-release@v2
         with:
           tag_name: aksesi-tv-player
-          name: Aksesi TV Player
-          body: Android TV / Google TV and Amazon Fire TV APK builds for AKSESI.
+          name: Aksesi TV Player 1.7.0
+          body: Google TV and Fire TV APKs. Google TV build is published only after a successful Android 5.1 (API 22) emulator launch and screen-text test.
           files: |
             android-player/app/build/outputs/apk/googleTv/debug/*.apk
             android-player/app/build/outputs/apk/fireTv/debug/*.apk
