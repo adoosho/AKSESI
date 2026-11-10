@@ -36,6 +36,11 @@ jobs:
       - name: Build Fire TV APK
         working-directory: android-player
         run: gradle --no-daemon assembleFireTvDebug
+      - name: Prepare H.264/AAC playback test video
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg tesseract-ocr
+          ffmpeg -hide_banner -loglevel error -f lavfi -i "testsrc2=size=640x360:rate=15" -f lavfi -i "sine=frequency=880:sample_rate=44100" -t 8 -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -c:a aac -b:a 96k -movflags +faststart -shortest aksesi-test.mp4
       - name: Test APK on Android 5.1 (API 22) emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -50,11 +55,16 @@ jobs:
             sleep 12
             adb shell screencap -p /data/local/tmp/aksesi-player.png
             adb pull /data/local/tmp/aksesi-player.png aksesi-player-api22.png
-            sudo apt-get update
-            sudo apt-get install -y tesseract-ocr
             tesseract aksesi-player-api22.png stdout > aksesi-player-ocr.txt
             cat aksesi-player-ocr.txt
             grep -Eiq "AKSESI|Lidhe monitorin" aksesi-player-ocr.txt
+            adb push aksesi-test.mp4 /sdcard/aksesi-test.mp4
+            adb shell am start -n com.aksesi.player.debug/com.aksesi.player.MainActivity -a com.aksesi.player.TEST_VIDEO --es aksesi_test_video /sdcard/aksesi-test.mp4
+            sleep 8
+            adb logcat -d -s AKSESI_VIDEO:I > aksesi-video-playback-log.txt
+            cat aksesi-video-playback-log.txt
+            grep -q "VIDEO_PREPARED" aksesi-video-playback-log.txt
+            grep -q "VIDEO_PLAYING" aksesi-video-playback-log.txt
       - name: Upload Android 5.1 emulator screenshot
         uses: actions/upload-artifact@v4
         with:
@@ -62,6 +72,7 @@ jobs:
           path: |
             aksesi-player-api22.png
             aksesi-player-ocr.txt
+            aksesi-video-playback-log.txt
           if-no-files-found: error
           retention-days: 30
       - name: Upload Google TV APK
@@ -82,8 +93,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: aksesi-tv-player
-          name: Aksesi TV Player 1.8.0
-          body: Google TV and Fire TV APKs. Google TV build is published only after a successful Android 5.1 (API 22) emulator launch and screen-text test.
+          name: Aksesi TV Player 1.9.0
+          body: Google TV and Fire TV APKs. Google TV build is published only after Android 5.1 (API 22) app launch plus a native H.264/AAC MP4 playback test that verifies playback advances.
           files: |
             android-player/app/build/outputs/apk/googleTv/debug/*.apk
             android-player/app/build/outputs/apk/fireTv/debug/*.apk
