@@ -312,7 +312,7 @@ class MainActivity : Activity() {
         // H.264/AAC file on the emulator; production builds ignore this extra.
         if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && intent.action == "com.aksesi.player.TEST_VIDEO") {
             val testPath = intent.getStringExtra("aksesi_test_video")
-            if (!testPath.isNullOrBlank() && testPath.startsWith("/sdcard/")) {
+            if (!testPath.isNullOrBlank() && testPath.startsWith(filesDir.absolutePath + "/")) {
                 root.postDelayed({
                     val density = resources.displayMetrics.density
                     showNativeVideo(
