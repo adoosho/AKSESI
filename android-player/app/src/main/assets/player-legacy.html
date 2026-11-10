@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090a10">
+<title>AKSESI Player</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090a10;color:#fff;font-family:Arial,Roboto,sans-serif}
+#stage{position:absolute;left:50%;top:50%;width:100vw;height:100vh;transform:translate(-50%,-50%);background:#090a10;overflow:hidden}
+#pair{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;padding:3%;background:#090a10}
+.panel{width:88%;max-width:1050px;text-align:center;padding:34px 24px;border:1px solid #393943;border-radius:22px;background:#1b1b23;box-shadow:0 10px 50px #000}
+.logo{height:54px;max-width:210px;object-fit:contain;background:#fff;border-radius:8px;padding:5px 10px}
+.kicker{margin-top:18px;color:#ff6b97;font-size:14px;font-weight:bold;letter-spacing:3px}
+h1{font-size:34px;line-height:1.2;margin:14px 0}
+.copy{font-size:18px;line-height:1.5;color:#c3c3ce;margin:8px auto 20px;max-width:760px}
+.digits{display:flex;justify-content:center;margin:20px 0}
+.digit{display:inline-block;width:64px;margin:0 5px;padding:12px 0;border:1px solid #555563;border-radius:10px;background:#30303b;font-size:42px;font-weight:bold}
+.status{color:#ff8bad;font-size:16px;margin-top:18px}
+.foot{color:#858592;font-size:13px;margin-top:18px}
+#zones{position:absolute;top:0;right:0;bottom:0;left:0;display:none}
+.zone{position:absolute;overflow:hidden;background:#000}
+.content{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+.ad{position:absolute;top:0;right:0;bottom:0;left:0;background-position:center;background-size:cover;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6%;text-align:center}
+.ad h2{font-size:7vw;line-height:1.1;margin:0;text-shadow:0 3px 14px #000}
+.ad p{font-size:3vw;margin:12px 0 0;text-shadow:0 2px 8px #000}
+.ad video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
+.progress{position:absolute;bottom:0;left:0;height:4px;background:#fff}
+#newcode{display:none;position:absolute;right:14px;bottom:14px;padding:10px 14px;background:#333;color:#fff;border:1px solid #aaa;border-radius:8px;font-size:16px}
+</style>
+</head>
+<body>
+<div id="stage">
+ <div id="pair">
+  <div class="panel">
+   <img class="logo" src="/favicon.png" alt="AKSESI">
+   <div class="kicker">AKSESI TV - LIDHJA E MONITORIT</div>
+   <h1>Lidhe monitorin me panelin tënd</h1>
+   <p class="copy">Hape panelin AKSESI në telefon ose kompjuter dhe shtoje këtë monitor duke përdorur kodin më poshtë.</p>
+   <div class="digits" id="digits"></div>
+   <div class="status" id="status">Në pritje të lidhjes së sigurt...</div>
+   <div class="foot">Kodi është unik për këtë monitor - Mos e ndaj me persona të tjerë</div>
+  </div>
+ </div>
+ <div id="zones"></div>
+ <button id="newcode">Kod i ri</button>
+</div>
+<script>
+(function(){
+var API='https://bnrogtqhxbqinrtzwblv.supabase.co/functions/v1/aksesi-sync';
+var KEY='sig_cfg',code=null,token=null,tokenCode=null,registered=false,busy=false,config=null,zones=[],layout=null,rotation=0,wasPaired=false,lastError='';
+var LAY={full:[[0,0,100,100]],v2:[[0,0,50,100],[50,0,50,100]],h2:[[0,0,100,50],[0,50,100,50]],g4:[[0,0,50,50],[50,0,50,50],[0,50,50,50],[50,50,50,50]]};
+function el(id){return document.getElementById(id);}
+function safeGet(k){var v=null;try{v=localStorage.getItem(k);}catch(e){}if(!v&&window.AksesiStore){try{v=window.AksesiStore.get(k)||'';}catch(e){}}if(v&&window.AksesiStore){try{window.AksesiStore.set(k,String(v));}catch(e){}}return v||null;}
+function safeSet(k,v){try{localStorage.setItem(k,String(v));}catch(e){}try{if(window.AksesiStore)window.AksesiStore.set(k,String(v));}catch(e){}}
+function safeRemove(k){try{localStorage.removeItem(k);}catch(e){}try{if(window.AksesiStore)window.AksesiStore.remove(k);}catch(e){}}
+function readConfig(){var c={};try{c=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){}if(!c.devices||typeof c.devices!=='object')c.devices={};if(!c.ads||!Array.isArray(c.ads))c.ads=[];return c;}
+function makeCode(){var n;do{n=String(Math.floor(100000+Math.random()*900000));}while(config.devices[n]);return n;}
+function xhr(action,data,done){var x=new XMLHttpRequest(),body={action:action,code:code};if(action!=='device_register')body.player_data=playerData();if(action==='device_state')body.token=token;x.open('POST',API,true);x.setRequestHeader('Content-Type','application/json');x.setRequestHeader('apikey','sb_publishable_XmxSriGEsgBmA18TrymD7Q_aEvYIwBK');x.onreadystatechange=function(){if(x.readyState!==4)return;var j={};try{j=JSON.parse(x.responseText||'{}');}catch(e){}if(x.status>=200&&x.status<300&&!j.error){done(null,j);}else{done(new Error(j.error||'Gabim në server ('+x.status+')'),null);}};x.onerror=function(){done(new Error('Kontrollo lidhjen me internetin.'),null);};try{x.send(JSON.stringify(body));}catch(e){done(e,null);}}
+function playerData(){var arr=[],i;for(i=0;i<zones.length;i++){var z=zones[i]&&zones[i].current;arr.push(z&&z.id?{ad:z.id,t:z.title,start:z.start,dur:z.dur}:null);}return {lay:layout,rot:rotation,zs:arr};}
+function showPair(msg){el('pair').style.display='flex';el('zones').style.display='none';el('status').innerHTML=msg||'Në pritje të lidhjes së sigurt...';}
+function drawCode(){var out='',i;for(i=0;i<code.length;i++)out+='<span class="digit">'+code.charAt(i)+'</span>';el('digits').innerHTML=out;}
+function beat(){if(busy)return;busy=true;
+ if(!token){
+  if(!registered){xhr('device_register',{},function(err,r){if(err){lastError=err.message;busy=false;el('status').innerHTML='Lidhja po provohet përsëri...';return;}if(r&&r.paired){safeRemove('sig_pcode');location.reload();return;}registered=true;poll();});return;}
+  poll();return;
+ }
+ xhr('device_state',{},function(err,r){busy=false;if(err){lastError=err.message;if(/autorizimi|authorization|401/i.test(lastError)){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;registered=false;}return;}if(r&&r.data){config=r.data;try{localStorage.setItem(KEY,JSON.stringify(config));}catch(e){}}if(r&&r.removed){safeRemove('sig_pcode');safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');location.reload();}});
+}
+function poll(){xhr('device_poll',{},function(err,r){busy=false;if(err){lastError=err.message;return;}if(r&&r.token){token=r.token;safeSet('sig_ptoken',token);safeSet('sig_ptoken_code',code);}if(r&&r.expired){safeRemove('sig_pcode');location.reload();}});}
+function dateText(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function allowed(s){if(!s)return true;var now=new Date(),today=dateText(now),day=now.getDay(),hm=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);if(s.from&&s.from>today)return false;if(s.to&&s.to<today)return false;if(s.days&&s.days.length&&s.days.indexOf(day)<0)return false;var a=s.ts,b=s.te;if(a&&b)return a<=b?(hm>=a&&hm<b):(hm>=a||hm<b);if(a&&hm<a)return false;if(b&&hm>=b)return false;return true;}
+function setRotation(r){rotation=r;var st=el('stage'),side=(r===90||r===270);st.style.width=side?'100vh':'100vw';st.style.height=side?'100vw':'100vh';st.style.transform='translate(-50%,-50%) rotate('+r+'deg)';}
+function buildZones(l){layout=l;var rows=LAY[l]||LAY.full,html='',i,r;zones=[];for(i=0;i<rows.length;i++){r=rows[i];html+='<div class="zone" style="left:'+r[0]+'%;top:'+r[1]+'%;width:'+r[2]+'%;height:'+r[3]+'%"><div class="content"></div><div class="progress" style="width:0"></div></div>';zones.push({current:null});}el('zones').innerHTML=html;el('zones').style.display='block';}
+function adMarkup(a){var html='<div class="ad"';if(a.img&&a.mediaType!=='video')html+=' style="background-image:url(&quot;'+String(a.img).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'&quot;)"';else html+=' style="background:'+(a.bg||'#111')+'"';html+='>';if(a.mediaType==='video'&&a.img)html+='<video src="'+String(a.img).replace(/"/g,'&quot;')+'" autoplay muted loop playsinline></video>';if(a.title)html+='<h2>'+escapeHtml(a.title)+'</h2>';if(a.sub)html+='<p>'+escapeHtml(a.sub)+'</p>';return html+'</div>';}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function render(){var d=config&&config.devices?config.devices[code]:null;if(!d){if(wasPaired){safeRemove('sig_pcode');location.reload();return;}showPair(lastError?'Lidhja po provohet përsëri...':'Në pritje të lidhjes së sigurt...');return;}
+ wasPaired=true;el('pair').style.display='none';el('zones').style.display='block';var r=Number(d.rot)||0;if(r!==rotation)setRotation(r);var l=LAY[d.layout]?d.layout:'full';if(l!==layout)buildZones(l);
+ var now=Date.now(),today=dateText(new Date()),list=(d.playlist||[]).map(function(id){for(var k=0;k<config.ads.length;k++)if(config.ads[k].id===id)return config.ads[k];return null;}).filter(function(a){return a&&allowed((d.sched||{})[a.id]);});
+ var i,j,zoneEl,z,zoneList,ad,dur,idx;for(i=0;i<zones.length;i++){zoneEl=el('zones').children[i];z=zones[i].current;zoneList=list.filter(function(a){return Math.min(zones.length,Math.max(1,Number((d.zone||{})[a.id])||1))===i+1;});
+ if(!zoneList.length){if(!z||z.id){zoneEl.children[0].innerHTML=zones.length===1?'<div class="ad" style="background:#1b1b1c"><h2>Asnjë reklamë</h2><p>Shto reklama nga paneli</p></div>':'';zones[i].current={id:null};zoneEl.children[1].style.width='0';}continue;}
+ if(!z||!z.id||!zoneList.some(function(a){return a.id===z.id;})||now-z.start>=z.dur*1000){idx=z&&z.id?((zoneList.map(function(a){return a.id;}).indexOf(z.id)+1)%zoneList.length):0;ad=zoneList[idx];dur=Math.max(1,Number(ad.dur)||10);zones[i].current={id:ad.id,title:ad.title,dur:dur,start:now};zoneEl.children[0].innerHTML=adMarkup(ad);if(ad.mediaType==='video'){var v=zoneEl.querySelector('video');if(v){try{v.play();}catch(e){}}}beat();z=zones[i].current;}
+ zoneEl.children[1].style.width=Math.min(100,(now-z.start)/(z.dur*1000)*100)+'%';
+ }
+}
+function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,1000);setInterval(beat,2500);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
+try{start();}catch(e){showPair('Gabim gjatë hapjes. Rihape aplikacionin.');}
+})();
+</script>
+</body>
+</html>
