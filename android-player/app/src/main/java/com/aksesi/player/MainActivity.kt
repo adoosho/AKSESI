@@ -10,8 +10,6 @@ import android.view.View
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -101,11 +99,6 @@ class MainActivity : Activity() {
                 return handleNavigation(url)
             }
 
-            // Android 6.0+ uses the WebResourceRequest overload.
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                return handleNavigation(request.url.toString())
-            }
-
             @Suppress("DEPRECATION")
             override fun onReceivedError(
                 view: WebView,
@@ -117,13 +110,6 @@ class MainActivity : Activity() {
                 if (failed.contains("/player-legacy.html")) showError()
             }
 
-            override fun onReceivedError(
-                view: WebView,
-                request: WebResourceRequest,
-                error: WebResourceError
-            ) {
-                if (request.isForMainFrame) showError()
-            }
         }
 
         root.addView(
@@ -134,7 +120,7 @@ class MainActivity : Activity() {
             )
         )
         setContentView(root)
-        webView.loadUrl("https://aksesi.space/player-legacy.html")
+        webView.loadUrl("https://www.aksesi.space/player-legacy.html")
     }
 
     private fun showError() {
