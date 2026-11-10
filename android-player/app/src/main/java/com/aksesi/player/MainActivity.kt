@@ -3,6 +3,7 @@ package com.aksesi.player
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.media.MediaPlayer
 import android.net.Uri
@@ -218,7 +219,7 @@ class MainActivity : Activity() {
 
         // Debug-only API 22 playback test hook. The CI workflow supplies a short
         // H.264/AAC file on the emulator; production builds ignore this extra.
-        if (BuildConfig.DEBUG && intent.action == "com.aksesi.player.TEST_VIDEO") {
+        if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0 && intent.action == "com.aksesi.player.TEST_VIDEO") {
             val testPath = intent.getStringExtra("aksesi_test_video")
             if (!testPath.isNullOrBlank() && testPath.startsWith("/sdcard/")) {
                 root.postDelayed({
