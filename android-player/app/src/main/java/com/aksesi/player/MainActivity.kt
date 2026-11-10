@@ -1,23 +1,25 @@
 package com.aksesi.player
 
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.webkit.JavascriptInterface
-import android.content.Context
 import android.widget.FrameLayout
 import android.widget.TextView
-import android.content.Intent
-import android.net.Uri
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+    private lateinit var root: FrameLayout
 
     private class AksesiStore(context: Context) {
         private val prefs = context.getSharedPreferences("aksesi_player_secure", Context.MODE_PRIVATE)
@@ -32,7 +34,8 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun set(key: String, value: String) {
             if (key !in allowed || value.length > 512) return
-            if ((key == "sig_pcode" || key == "sig_ptoken_code") && !value.matches(Regex("[0-9]{6}"))) return
+            if ((key == "sig_pcode" || key == "sig_ptoken_code") &&
+                !value.matches(Regex("[0-9]{6}"))) return
             prefs.edit().putString(key, value).apply()
         }
 
@@ -45,13 +48,31 @@ class MainActivity : Activity() {
     @Suppress("DEPRECATION")
     private fun enterImmersiveMode() {
         window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             )
+    }
+
+    private fun isAksesiUrl(url: String): Boolean {
+        val uri = Uri.parse(url)
+        val host = uri.host ?: return false
+        return uri.scheme == "https" && (host == "aksesi.space" || host.endsWith(".aksesi.space"))
+    }
+
+    private fun handleNavigation(url: String): Boolean {
+        if (isAksesiUrl(url)) return false
+        if (url.startsWith("https://")) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            } catch (_: Exception) {
+                // Keep unsupported external links inside the player.
+            }
+        }
+        return true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +82,7 @@ class MainActivity : Activity() {
         window.navigationBarColor = Color.BLACK
         enterImmersiveMode()
 
-        val root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+        root = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
         webView = WebView(this)
         webView.setBackgroundColor(Color.BLACK)
         webView.settings.javaScriptEnabled = true
@@ -69,28 +90,39 @@ class MainActivity : Activity() {
         webView.settings.databaseEnabled = true
         webView.settings.loadsImagesAutomatically = true
         webView.settings.mediaPlaybackRequiresUserGesture = false
-        webView.addJavascriptInterface(AksesiStore(this), "AksesiStore")
         webView.settings.allowFileAccess = false
         webView.settings.allowContentAccess = false
+        webView.addJavascriptInterface(AksesiStore(this), "AksesiStore")
         webView.webChromeClient = WebChromeClient()
         webView.webViewClient = object : WebViewClient() {
+            // Android 5.1 and earlier use the String overload.
+            @Suppress("DEPRECATION")
+            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                return handleNavigation(url)
+            }
+
+            // Android 6.0+ uses the WebResourceRequest overload.
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                val uri = request.url
-                val host = uri.host ?: return true
-                if (host == "aksesi.space" || host.endsWith(".aksesi.space")) return false
-                if (uri.scheme == "https") {
-                    startActivity(Intent(Intent.ACTION_VIEW, uri))
-                    return true
-                }
-                return true
+                return handleNavigation(request.url.toString())
+            }
+
+            @Suppress("DEPRECATION")
+            override fun onReceivedError(
+                view: WebView,
+                errorCode: Int,
+                description: String?,
+                failingUrl: String?
+            ) {
+                val failed = failingUrl ?: return
+                if (failed.contains("/player-legacy.html")) showError()
             }
 
             override fun onReceivedError(
                 view: WebView,
                 request: WebResourceRequest,
-                error: android.webkit.WebResourceError
+                error: WebResourceError
             ) {
-                if (request.isForMainFrame) showError(root)
+                if (request.isForMainFrame) showError()
             }
         }
 
@@ -102,23 +134,39 @@ class MainActivity : Activity() {
             )
         )
         setContentView(root)
-        webView.loadUrl("https://aksesi.space/player.html")
+        webView.loadUrl("https://aksesi.space/player-legacy.html")
     }
 
-    private fun showError(root: FrameLayout) {
-        val message = TextView(this).apply {
-            text = "Nuk ka lidhje me internetin. Kontrollo rrjetin dhe provo përsëri."
-            setTextColor(Color.WHITE)
-            textSize = 22f
-            gravity = android.view.Gravity.CENTER
-            setPadding(40, 40, 40, 40)
-        }
-        root.removeAllViews()
-        root.addView(message)
-        root.setOnClickListener {
+    private fun showError() {
+        runOnUiThread {
+            val message = TextView(this).apply {
+                text = "Nuk mund të hapet AKSESI. Kontrollo internetin dhe prek ekranin për të provuar përsëri."
+                setTextColor(Color.WHITE)
+                textSize = 20f
+                gravity = android.view.Gravity.CENTER
+                setPadding(40, 40, 40, 40)
+                setBackgroundColor(Color.BLACK)
+            }
             root.removeAllViews()
-            root.addView(webView)
-            webView.reload()
+            root.addView(
+                message,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            )
+            root.setOnClickListener {
+                root.setOnClickListener(null)
+                root.removeAllViews()
+                root.addView(
+                    webView,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    )
+                )
+                webView.reload()
+            }
         }
     }
 
@@ -129,8 +177,7 @@ class MainActivity : Activity() {
     }
 
     override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack()
-        else webView.reload()
+        if (webView.canGoBack()) webView.goBack() else webView.reload()
     }
 
     override fun onDestroy() {
