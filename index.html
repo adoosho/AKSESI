@@ -213,11 +213,13 @@ function bindTap(el,handler){
 }
 function login(message=''){
  $('#app').innerHTML=`<div class="login"><div style="background:#1b1b1c;border-radius:14px;padding:18px 20px;margin-bottom:6px;border-bottom:3px solid var(--ac)"><img src="${LOGOW}" alt="Aksesi" style="height:44px;display:block;margin:0 auto"></div><h2 style="margin:18px 0 4px">Hyr në Aksesi</h2><p class="mu">Hyr me email dhe fjalëkalim.</p><form id="loginForm" style="display:grid;gap:10px"><input type="email" id="email" placeholder="Email" autocomplete="username" required><input type="password" id="password" placeholder="Fjalëkalimi" autocomplete="current-password" required><button class="btn" id="go" type="submit">Hyr</button><button class="btn g" id="forgot" type="button">Kam harruar fjalëkalimin</button><button class="btn g" id="register" type="button">Krijo llogari të re</button><div class="mu" id="er" style="color:var(--er)" role="alert"></div><div class="mu" id="cloudmsg" aria-live="polite">${message||''}</div></form></div>`;
- $('#loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();
+ let loginBusy=false;
+ const submitLogin=async e=>{
+  if(e)e.preventDefault();
+  if(loginBusy)return;
   const email=$('#email').value.trim(),password=$('#password').value,button=$('#go');
   if(!email||!password){$('#er').textContent='Shkruaj emailin dhe fjalëkalimin.';return}
-  button.disabled=true;button.textContent='Duke hyrë…';$('#er').textContent='';$('#cloudmsg').textContent='Po lidhemi me panelin…';
+  loginBusy=true;button.disabled=true;button.textContent='Duke hyrë…';$('#er').textContent='';$('#cloudmsg').textContent='Po lidhemi me panelin…';
   try{
    const {data,error}=await sb.auth.signInWithPassword({email,password});
    if(error)throw error;
@@ -226,8 +228,10 @@ function login(message=''){
    $('#er').textContent=e.message||'Hyrja dështoi.';
    $('#cloudmsg').textContent='';
    button.disabled=false;button.textContent='Hyr';
-  }
- });
+  }finally{loginBusy=false}
+ };
+ $('#loginForm').addEventListener('submit',submitLogin);
+ $('#go').addEventListener('click',e=>{e.preventDefault();submitLogin(e)});
  bindTap($('#register'),()=>registerScreen());
  bindTap($('#forgot'),async()=>{
   const email=$('#email').value.trim();
