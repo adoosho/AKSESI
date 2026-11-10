@@ -60,8 +60,9 @@ jobs:
             adb shell screencap -p /data/local/tmp/aksesi-player.png
             adb pull /data/local/tmp/aksesi-player.png aksesi-player-api22.png
             test -s aksesi-player-api22.png
-            adb push aksesi-test.mp4 /sdcard/aksesi-test.mp4
-            adb shell am start -n com.aksesi.player.debug/com.aksesi.player.MainActivity -a com.aksesi.player.TEST_VIDEO --es aksesi_test_video /sdcard/aksesi-test.mp4
+            adb push aksesi-test.mp4 /data/local/tmp/aksesi-test.mp4
+            adb shell run-as com.aksesi.player.debug cp /data/local/tmp/aksesi-test.mp4 files/aksesi-test.mp4
+            adb shell am start -n com.aksesi.player.debug/com.aksesi.player.MainActivity -a com.aksesi.player.TEST_VIDEO --es aksesi_test_video /data/data/com.aksesi.player.debug/files/aksesi-test.mp4
             sleep 8
             adb logcat -d -s AKSESI_VIDEO:I > aksesi-video-playback-log.txt
             cat aksesi-video-playback-log.txt
