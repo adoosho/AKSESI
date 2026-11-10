@@ -96,7 +96,7 @@ jobs:
       - name: Publish tested APK downloads
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: aksesi-tv-player
+          tag_name: aksesi-tv-player-1.9.0
           name: Aksesi TV Player 1.9.0
           body: Google TV and Fire TV APKs. Google TV build is published only after Android 5.1 (API 22) app launch plus a native H.264/AAC MP4 playback test that verifies playback advances.
           files: |
