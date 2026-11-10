@@ -199,7 +199,10 @@ async function admin(sessionOverride=null){
   }
  }catch(e){
   cloudAdmin=false;cloudLoading=false;
-  login(e.message||'Nuk u hap paneli. Provo përsëri.');
+  const message=e&&e.message?e.message:'Gabim i panjohur gjatë hapjes së panelit.';
+  $('#app').innerHTML=`<div class="login"><div style="background:#1b1b1c;border-radius:14px;padding:18px 20px;margin-bottom:12px;border-bottom:3px solid var(--ac)"><img src="${LOGOW}" alt="Aksesi" style="height:44px;display:block;margin:0 auto"></div><h2>Hyrja u verifikua</h2><p class="mu">Llogaria u lidh me sukses, por paneli nuk u shfaq. Arsyeja:</p><div id="adminFailure" role="alert" style="padding:12px;border:1px solid var(--er);border-radius:10px;color:var(--er);overflow-wrap:anywhere">${esc(message)}</div><button class="btn" id="retryAdmin" type="button" style="margin-top:14px">Provo përsëri</button><button class="btn g" id="adminSignOut" type="button" style="margin-top:8px">Dil nga llogaria</button></div>`;
+  $('#retryAdmin').onclick=()=>admin();
+  $('#adminSignOut').onclick=async()=>{await sb.auth.signOut();cloudAdmin=false;sessionStorage.clear();history.replaceState(null,'',location.pathname);login()};
  }
 }
 function bindTap(el,handler){
