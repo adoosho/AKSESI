@@ -182,7 +182,8 @@ async function admin(sessionOverride=null){
    draw();
   }
   const remote=await adminCall('admin_get',{},session);
-  const state=remote?.data?.data;
+  const payload=remote?.data;
+  const state=payload?.data&&typeof payload.data==='object'?payload.data:payload;
   if(!validState(state))throw new Error('Të dhënat e llogarisë nuk u lexuan saktë. Provo përsëri.');
   localStorage.setItem(KC,JSON.stringify(state));
   localStorage.setItem(cacheKey,JSON.stringify(state));
