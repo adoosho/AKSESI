@@ -19,12 +19,18 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.VideoView
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.security.MessageDigest
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
     private lateinit var root: FrameLayout
     private val nativeVideos = HashMap<Int, VideoView>()
     private val nativeVideoUrls = HashMap<Int, String>()
+    private val downloadingVideoUrls = HashSet<String>()
 
     private class AksesiStore(context: Context) {
         private val prefs = context.getSharedPreferences("aksesi_player_secure", Context.MODE_PRIVATE)
@@ -112,11 +118,95 @@ class MainActivity : Activity() {
         if (nativeVideoUrls[zone] != url) {
             nativeVideoUrls[zone] = url
             video.visibility = View.VISIBLE
-            video.setVideoURI(Uri.parse(url))
+            video.setBackgroundColor(Color.BLACK)
             video.requestFocus()
+            playCachedOrDownload(zone, url, video)
         } else if (video.visibility != View.VISIBLE) {
             video.visibility = View.VISIBLE
         }
+    }
+
+    // Cache assigned videos locally so playback survives temporary internet loss.
+    private fun cachedVideoFile(url: String): File {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(url.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        val dir = File(filesDir, "aksesi-video-cache")
+        if (!dir.exists()) dir.mkdirs()
+        return File(dir, digest + ".mp4")
+    }
+
+    private fun playCachedOrDownload(zone: Int, mediaUrl: String, video: VideoView) {
+        if (mediaUrl.startsWith("file://")) {
+            video.setVideoURI(Uri.parse(mediaUrl))
+            video.requestFocus()
+            return
+        }
+        val cached = cachedVideoFile(mediaUrl)
+        if (cached.isFile && cached.length() > 0L) {
+            video.setVideoURI(Uri.fromFile(cached))
+            video.requestFocus()
+            Log.i("AKSESI_VIDEO", "VIDEO_CACHE_HIT zone=" + zone + " bytes=" + cached.length())
+            return
+        }
+        synchronized(downloadingVideoUrls) {
+            if (!downloadingVideoUrls.add(mediaUrl)) return
+        }
+        Thread {
+            var connection: HttpURLConnection? = null
+            val partial = File(cached.parentFile, cached.name + ".part")
+            try {
+                connection = (URL(mediaUrl).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15000
+                    readTimeout = 30000
+                    instanceFollowRedirects = true
+                    requestMethod = "GET"
+                    connect()
+                }
+                val status = connection.responseCode
+                if (status !in 200..299) throw java.io.IOException("HTTP " + status)
+                val expected = connection.contentLengthLong
+                if (expected > 250L * 1024L * 1024L) throw java.io.IOException("Video exceeds cache limit")
+                connection.inputStream.use { input ->
+                    FileOutputStream(partial).use { output ->
+                        val buffer = ByteArray(64 * 1024)
+                        var total = 0L
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            total += count
+                            if (total > 250L * 1024L * 1024L) throw java.io.IOException("Video exceeds cache limit")
+                            output.write(buffer, 0, count)
+                        }
+                        output.fd.sync()
+                    }
+                }
+                if (partial.length() <= 0L || (expected > 0L && partial.length() != expected)) {
+                    throw java.io.IOException("Incomplete video download")
+                }
+                if (cached.exists()) cached.delete()
+                if (!partial.renameTo(cached)) throw java.io.IOException("Cannot save cached video")
+                runOnUiThread {
+                    if (nativeVideoUrls[zone] == mediaUrl && nativeVideos[zone] === video) {
+                        video.setVideoURI(Uri.fromFile(cached))
+                        video.requestFocus()
+                        Log.i("AKSESI_VIDEO", "VIDEO_CACHED zone=" + zone + " bytes=" + cached.length())
+                    }
+                }
+            } catch (e: Exception) {
+                partial.delete()
+                Log.w("AKSESI_VIDEO", "VIDEO_CACHE_FAILED zone=" + zone + " " + e.message)
+                runOnUiThread {
+                    if (nativeVideoUrls[zone] == mediaUrl && nativeVideos[zone] === video) {
+                        video.setVideoURI(Uri.parse(mediaUrl))
+                        video.requestFocus()
+                    }
+                }
+            } finally {
+                connection?.disconnect()
+                synchronized(downloadingVideoUrls) { downloadingVideoUrls.remove(mediaUrl) }
+            }
+        }.start()
     }
 
     private fun removeNativeVideo(zone: Int) {
