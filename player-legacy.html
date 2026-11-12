@@ -86,7 +86,7 @@ function render(){var d=config&&config.devices?config.devices[code]:null;if(!d){
  zoneEl.children[1].style.width=Math.min(100,(now-z.start)/(z.dur*1000)*100)+'%';
  }
 }
-function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,500);setInterval(beat,1000);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
+function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,500);setInterval(beat,15000);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
 try{start();}catch(e){showPair('Gabim gjatë hapjes. Rihape aplikacionin.');}
 })();
 </script>
