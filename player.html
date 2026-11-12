@@ -51,7 +51,7 @@ input[type=text],input[type=password],input[type=number],input[type=date]{width:
 .pair-foot{font-size:clamp(10px,1.1vw,13px);color:#858692;letter-spacing:.02em}
 @keyframes pulse{50%{opacity:.45;transform:scale(.86)}}
 .ad{position:absolute;inset:0;background-size:cover;background-position:center;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6vw;animation:f .8s}
-@keyframes f{from{opacity:0}}
+@keyframes f{from{opacity:0}}@keyframes aksesiSlide{from{opacity:0;transform:translateX(3%)}to{opacity:1;transform:translateX(0)}}.aksesi-slide{animation:aksesiSlide .55s ease-out}
 .ad h1{font-size:min(8vw,80px);margin:0;text-shadow:0 4px 20px rgba(0,0,0,.5)}.ad p{font-size:min(3.5vw,32px);margin:10px 0 0;text-shadow:0 2px 10px rgba(0,0,0,.5)}
 .hide{display:none!important}
 .lg{height:34px;border-radius:8px;background:#fff;padding:3px 8px;border:1px solid var(--bd)}.top{border-bottom:3px solid var(--ac)}.tab.on{background:none;color:var(--ac);box-shadow:inset 0 -2px 0 var(--ac);border-radius:0}.stat{border-left:4px solid var(--ac)}
@@ -100,7 +100,7 @@ function player(){
   const now=Date.now(),t=td(),n=LAY[l].length,list=(d.playlist||[]).map(id=>c.ads.find(a=>a.id===id)).filter(a=>a&&okd((d.sched||{})[a.id],t));
   for(let i=0;i<n;i++){const zl=list.filter(a=>Math.min(n,Math.max(1,+(d.zone||{})[a.id]||1))===i+1),el=$('#zn').children[i];let z=zs[i];
    if(!zl.length){if(!z||z.id){el.firstChild.innerHTML=n===1?'<div class="ad" style="background:#1b1b1c"><h1>Asnjë reklamë</h1><p>Shto reklama nga paneli</p></div>':'<div class="ad" style="background:#1b1b1c"></div>';zs[i]={id:null};el.lastChild.style.width='0'}continue}
-   if(!z||!z.id||!zl.find(a=>a.id===z.id)||now-z.start>=z.dur*1000){const j=z&&z.id?(zl.findIndex(a=>a.id===z.id)+1)%zl.length:0,a=zl[j];z=zs[i]={id:a.id,title:a.title,dur:a.dur,start:now};el.firstChild.innerHTML=adHTML(a)}
+   let chosenAd=null,elapsed=0;if(d.sync&&d.group){const cycle=zl.reduce((n,a)=>n+Math.max(2,Number(a.dur)||6),0);if(cycle>0){let phase=(Date.now()/1000)%cycle;for(const item of zl){const dur=Math.max(2,Number(item.dur)||6);if(phase<dur){chosenAd=item;elapsed=phase;break}phase-=dur}}}if(!chosenAd){if(!z||!z.id||!zl.find(a=>a.id===z.id)||now-z.start>=z.dur*1000){const j=z&&z.id?(zl.findIndex(a=>a.id===z.id)+1)%zl.length:0;chosenAd=zl[j]}else chosenAd=zl.find(a=>a.id===z.id)}if(chosenAd&&(!z||z.id!==chosenAd.id||d.sync&&!z.synced)){const a=chosenAd;z=zs[i]={id:a.id,title:a.title,dur:a.dur,start:d.sync&&d.group?now-elapsed*1000:now,synced:!!(d.sync&&d.group)};let html=adHTML(a);if(d.transition==='none')html=html.replace('class="ad"','class="ad" style="animation:none"');else if(d.transition==='slide')html=html.replace('class="ad"','class="ad aksesi-slide"');el.firstChild.innerHTML=html}
    el.lastChild.style.width=Math.min(100,(now-z.start)/z.dur/10)+'%'}}
  setInterval(tick,500);setBeatInterval(15000);tick();beat();
  let ht;const show=()=>{$('#nw').classList.remove('hide');clearTimeout(ht);ht=setTimeout(()=>$('#nw').classList.add('hide'),5000)};
