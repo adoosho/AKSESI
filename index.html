@@ -227,6 +227,8 @@ async function refreshPresence(){
   const c=cfg(),codes=Object.keys(c.devices),before={};codes.forEach(k=>before[k]=!!online(k));
   const r=await adminCall('admin_presence');
   (r.presence||[]).forEach(p=>{const pd=p.player_data||{};localStorage.setItem('sig_dev_'+p.code,JSON.stringify({...pd,code:p.code,seen:p.last_seen?new Date(p.last_seen).getTime():0,status:p.status}))});
+  let presenceChanged=false;
+  codes.forEach(k=>{if(before[k]!==!!online(k))presenceChanged=true});
   if(monitorPresencePrimed){
    const events=monitorEvents(),now=Date.now(),added=[];
    codes.forEach(k=>{const after=!!online(k);if(before[k]!==after){const ev={id:now+'-'+k,code:k,name:c.devices[k]?.name||('Monitor '+k),online:after,at:now};events.push(ev);added.push(ev)}});
@@ -236,6 +238,7 @@ async function refreshPresence(){
    }
   }
   monitorPresencePrimed=true;
+  if(presenceChanged&&!modal)draw();
  }catch(e){console.warn('Presence:',e.message)}finally{presenceBusy=false}
 }
 const wr=(k,v)=>{
