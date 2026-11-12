@@ -125,5 +125,6 @@ sel.addEventListener('change',()=>{automaticLanguage=sel.value==='auto';if(autom
 const obs=new MutationObserver(ms=>{for(const m of ms){if(m.type==='childList')m.addedNodes.forEach(translateNode);else if(m.type==='characterData')translateNode(m.target);}});
 obs.observe(document.body,{subtree:true,childList:true,characterData:true});apply();
 })();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(e=>console.warn('AKSESI offline cache:',e.message)))}
 route();
 </script></body></html>
