@@ -138,10 +138,11 @@ input[type=text],input[type=email],input[type=password],input[type=number],input
 /* Subtle AKSESI logo watermark on the public home screen */
 .home-page{position:relative;isolation:isolate;min-height:100vh;overflow:hidden;background:var(--bg)}
 .home-watermark{position:absolute;inset:0;z-index:0;display:grid;place-items:center;overflow:hidden;pointer-events:none;user-select:none}
-.home-watermark img{display:block;width:min(68vw,780px);max-height:72vh;object-fit:contain;opacity:.055;filter:blur(2px) grayscale(1);transform:rotate(-7deg)}
+.home-watermark img{display:block;width:min(84vw,980px);max-height:88vh;object-fit:contain;opacity:.13;filter:blur(1.4px);transform:rotate(-7deg)}
 .home-page>.wrap{position:relative;z-index:1}
-@media(max-width:640px){.home-watermark img{width:92vw;max-height:58vh;opacity:.04;filter:blur(2.5px) grayscale(1)}}
-@media(prefers-color-scheme:dark){.home-watermark img{opacity:.035;mix-blend-mode:screen}}
+.home-page .login{background:color-mix(in srgb,var(--sf) 78%,transparent);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+@media(max-width:640px){.home-watermark img{width:94vw;max-height:65vh;opacity:.075;filter:blur(1.8px)}}
+@media(prefers-color-scheme:dark){.home-watermark img{opacity:.11}}
 </style></head><body>
 <div id="app"><div style="max-width:420px;margin:12vh auto;padding:24px;text-align:center;font:16px system-ui;color:#fff;background:#1b1b1c;border-radius:16px;border-top:4px solid #d9004c"><b>AKSESI</b><p>Po ngarkohet aplikacioni…</p><p style="font-size:13px;color:#bbb">Nëse kjo faqe mbetet këtu, rifreskoje ose kontrollo lidhjen e internetit.</p></div></div>
 <script>
