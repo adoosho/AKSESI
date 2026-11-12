@@ -188,7 +188,7 @@ let reportEvents=[],reportLoading=false,reportError='',reportFrom=new Date(Date.
 async function loadReports(){
  if(!cloudAdmin)return;
  reportLoading=true;reportError='';draw();
- try{const r=await adminCall('admin_reports',{from:reportFrom});reportEvents=Array.isArray(r.events)?r.events:[]}
+ try{reportEvents=[];for(let page=0;page<50;page++){const r=await adminCall('admin_reports',{from:reportFrom,page});const batch=Array.isArray(r.events)?r.events:[];reportEvents.push(...batch);if(!r.has_more||!batch.length)break}}
  catch(e){reportError=e.message||'Raporti nuk u ngarkua.'}
  finally{reportLoading=false;draw()}
 }
