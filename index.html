@@ -117,7 +117,7 @@ function monitorEventKey(){return 'aksesi_monitor_events_'+(sessionStorage.getIt
 function monitorReadKey(){return 'aksesi_monitor_events_read_'+(sessionStorage.getItem('sig_in')||'local')}
 function monitorEvents(){return rd(monitorEventKey(),[])}
 async function refreshPresence(){
- if(!cloudAdmin||presenceBusy||!Object.keys(cfg().devices||{}).length)return;presenceBusy=true;
+ if(!cloudAdmin||presenceBusy||document.visibilityState==='hidden')return;presenceBusy=true;
  try{
   const c=cfg(),codes=Object.keys(c.devices),before={};codes.forEach(k=>before[k]=!!online(k));
   const r=await adminCall('admin_presence');
@@ -240,6 +240,7 @@ async function admin(sessionOverride=null){
    window.aksesiIntervalsStarted=true;
    setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},5000);
    setInterval(refreshPresence,5000);
+   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPresence()});
    addEventListener('storage',()=>{if(!modal)draw()});
   }
  }catch(e){
