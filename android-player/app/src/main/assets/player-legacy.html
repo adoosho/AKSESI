@@ -47,7 +47,8 @@ h1{display:none}
 <script>
 (function(){
 var API='https://bnrogtqhxbqinrtzwblv.supabase.co/functions/v1/aksesi-sync';
-var KEY='sig_cfg',code=null,token=null,tokenCode=null,registered=false,busy=false,config=null,zones=[],layout=null,rotation=0,wasPaired=false,lastError='',lastPlaySignature='';
+var KEY='sig_cfg',code=null,token=null,tokenCode=null,registered=false,busy=false,config=null,zones=[],layout=null,rotation=0,wasPaired=false,lastError='',lastPlaySignature='',beatTimer=null,beatInterval=15000;
+function setBeatInterval(ms){if(beatInterval===ms&&beatTimer!==null)return;if(beatTimer!==null)clearInterval(beatTimer);beatInterval=ms;beatTimer=setInterval(beat,beatInterval);}
 var LAY={full:[[0,0,100,100]],v2:[[0,0,50,100],[50,0,50,100]],h2:[[0,0,100,50],[0,50,100,50]],g4:[[0,0,50,50],[50,0,50,50],[0,50,50,50],[50,50,50,50]]};
 function el(id){return document.getElementById(id);}
 function safeGet(k){var v=null;try{v=localStorage.getItem(k);}catch(e){}if(!v&&window.AksesiStore){try{v=window.AksesiStore.get(k)||'';}catch(e){}}if(v&&window.AksesiStore){try{window.AksesiStore.set(k,String(v));}catch(e){}}return v||null;}
@@ -64,7 +65,7 @@ function beat(){if(busy)return;busy=true;
   if(!registered){xhr('device_register',{},function(err,r){if(err){lastError=err.message;busy=false;el('status').innerHTML='Lidhja po provohet përsëri...';return;}if(r&&r.paired){safeRemove('sig_pcode');location.reload();return;}registered=true;poll();});return;}
   poll();return;
  }
- xhr('device_state',{},function(err,r){busy=false;if(err){lastError=err.message;if(/autorizimi|authorization|401/i.test(lastError)){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;registered=false;}return;}if(r&&r.data){config=r.data;try{localStorage.setItem(KEY,JSON.stringify(config));}catch(e){}render();}if(r&&r.removed){safeRemove('sig_pcode');safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');location.reload();}});
+ xhr('device_state',{},function(err,r){busy=false;if(err){lastError=err.message;if(/autorizimi|authorization|401/i.test(lastError)){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;registered=false;}return;}if(r&&typeof r.active==='boolean')setBeatInterval(r.active?2500:15000);if(r&&r.data){config=r.data;try{localStorage.setItem(KEY,JSON.stringify(config));}catch(e){}render();}if(r&&r.removed){safeRemove('sig_pcode');safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');location.reload();}});
 }
 function poll(){xhr('device_poll',{},function(err,r){busy=false;if(err){lastError=err.message;el('status').innerHTML='Lidhja me serverin dështoi. Po provohet përsëri...';return;}lastError='';el('status').innerHTML='Në pritje të çiftimit...';if(r&&r.token){token=r.token;safeSet('sig_ptoken',token);safeSet('sig_ptoken_code',code);}if(r&&r.expired){safeRemove('sig_pcode');location.reload();}});}
 function dateText(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
@@ -82,11 +83,11 @@ function render(){var d=config&&config.devices?config.devices[code]:null;if(!d){
  var playSignature=JSON.stringify({playlist:d.playlist||[],ads:list.map(function(a){return [a.id,a.img,a.mediaType,a.title,a.sub,a.dur,a.bg];}),zone:d.zone||{},layout:d.layout||'full',rot:d.rot||0});if(playSignature!==lastPlaySignature){lastPlaySignature=playSignature;for(var resetIndex=0;resetIndex<zones.length;resetIndex++){stopNativeVideo(resetIndex);zones[resetIndex].current=null;}}
  var i,j,zoneEl,z,zoneList,ad,dur,idx;for(i=0;i<zones.length;i++){zoneEl=el('zones').children[i];z=zones[i].current;zoneList=list.filter(function(a){return Math.min(zones.length,Math.max(1,Number((d.zone||{})[a.id])||1))===i+1;});
  if(!zoneList.length){stopNativeVideo(i);if(!z||z.id){zoneEl.children[0].innerHTML=zones.length===1?'<div class="ad" style="background:#1b1b1c"><h2>Asnjë reklamë</h2><p>Shto reklama nga paneli</p></div>':'';zones[i].current={id:null};zoneEl.children[1].style.width='0';}continue;}
- if(!z||!z.id||!zoneList.some(function(a){return a.id===z.id;})||now-z.start>=z.dur*1000){idx=z&&z.id?((zoneList.map(function(a){return a.id;}).indexOf(z.id)+1)%zoneList.length):0;ad=zoneList[idx];dur=Math.max(1,Number(ad.dur)||10);zones[i].current={id:ad.id,title:ad.title,dur:dur,start:now};zoneEl.children[0].innerHTML=adMarkup(ad);if(ad.mediaType==='video'&&ad.img){var v=zoneEl.querySelector('video');if(v){try{v.muted=true;v.loop=true;v.play();}catch(e){}}startNativeVideo(i,zoneEl,ad.img);}else{stopNativeVideo(i);}beat();z=zones[i].current;}
+ if(!z||!z.id||!zoneList.some(function(a){return a.id===z.id;})||now-z.start>=z.dur*1000){idx=z&&z.id?((zoneList.map(function(a){return a.id;}).indexOf(z.id)+1)%zoneList.length):0;ad=zoneList[idx];dur=Math.max(1,Number(ad.dur)||10);zones[i].current={id:ad.id,title:ad.title,dur:dur,start:now};zoneEl.children[0].innerHTML=adMarkup(ad);if(ad.mediaType==='video'&&ad.img){var v=zoneEl.querySelector('video');if(v){try{v.muted=true;v.loop=true;v.play();}catch(e){}}startNativeVideo(i,zoneEl,ad.img);}else{stopNativeVideo(i);}z=zones[i].current;}
  zoneEl.children[1].style.width=Math.min(100,(now-z.start)/(z.dur*1000)*100)+'%';
  }
 }
-function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,500);setInterval(beat,1000);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
+function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();setBeatInterval(15000);beat();setInterval(render,500);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
 try{start();}catch(e){showPair('Gabim gjatë hapjes. Rihape aplikacionin.');}
 })();
 </script>
