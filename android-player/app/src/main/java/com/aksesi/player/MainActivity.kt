@@ -7,6 +7,10 @@ import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.media.MediaPlayer
 import android.net.Uri
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -31,6 +35,38 @@ class MainActivity : Activity() {
     private val nativeVideos = HashMap<Int, VideoView>()
     private val nativeVideoUrls = HashMap<Int, String>()
     private val downloadingVideoUrls = HashSet<String>()
+    private var connectivityManager: ConnectivityManager? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    private fun notifyNetworkState(online: Boolean) {
+        if (!::webView.isInitialized) return
+        webView.post {
+            webView.evaluateJavascript("window.aksesiNetworkChanged && window.aksesiNetworkChanged(" + online + ")", null)
+        }
+    }
+
+    private fun registerConnectivityMonitor() {
+        val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+        connectivityManager = manager
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                notifyNetworkState(true)
+            }
+
+            override fun onLost(network: Network) {
+                notifyNetworkState(manager.activeNetworkInfo?.isConnected == true)
+            }
+        }
+        try {
+            manager.registerNetworkCallback(
+                NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(),
+                callback
+            )
+            networkCallback = callback
+        } catch (e: Exception) {
+            Log.w("AKSESI_NETWORK", "Connectivity callback unavailable: " + e.message)
+        }
+    }
 
     private class AksesiStore(context: Context) {
         private val prefs = context.getSharedPreferences("aksesi_player_secure", Context.MODE_PRIVATE)
@@ -295,6 +331,7 @@ class MainActivity : Activity() {
             )
         )
         setContentView(root)
+        registerConnectivityMonitor()
         try {
             val html = assets.open("player-legacy.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
             webView.loadDataWithBaseURL(
@@ -372,7 +409,18 @@ class MainActivity : Activity() {
         if (webView.canGoBack()) webView.goBack() else webView.reload()
     }
 
+    override fun onResume() {
+        super.onResume()
+        enterImmersiveMode()
+        val connected = connectivityManager?.activeNetworkInfo?.isConnected == true
+        notifyNetworkState(connected)
+    }
+
     override fun onDestroy() {
+        try {
+            networkCallback?.let { connectivityManager?.unregisterNetworkCallback(it) }
+        } catch (_: Exception) {
+        }
         nativeVideos.keys.toList().forEach { removeNativeVideo(it) }
         webView.destroy()
         super.onDestroy()
