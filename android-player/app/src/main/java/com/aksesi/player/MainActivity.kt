@@ -21,11 +21,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.Button
-import android.widget.SeekBar
 import android.widget.TextView
-import android.view.ViewGroup
 import android.widget.VideoView
 import java.io.File
 import java.io.FileOutputStream
@@ -39,11 +35,6 @@ class MainActivity : Activity() {
     private val nativeVideos = HashMap<Int, VideoView>()
     private val nativeVideoUrls = HashMap<Int, String>()
     private val downloadingVideoUrls = HashSet<String>()
-    private var videoMuted = false
-    private var videoVolume = 1f
-    private lateinit var audioControls: LinearLayout
-    private lateinit var muteButton: Button
-    private lateinit var volumeSlider: SeekBar
     private var connectivityManager: ConnectivityManager? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
@@ -115,16 +106,6 @@ class MainActivity : Activity() {
             runOnUiThread { removeNativeVideo(zone) }
         }
 
-        @JavascriptInterface
-        fun setMuted(muted: Boolean) {
-            runOnUiThread { setVideoMuted(muted) }
-        }
-
-        @JavascriptInterface
-        fun setVolume(volume: Float) {
-            if (!volume.isFinite()) return
-            runOnUiThread { setVideoVolume(volume.coerceIn(0f, 1f)) }
-        }
     }
 
     private fun isAllowedMediaUrl(url: String): Boolean {
@@ -139,12 +120,11 @@ class MainActivity : Activity() {
     }
 
     private fun showNativeVideo(zone: Int, url: String, left: Float, top: Float, width: Float, height: Float) {
-        if (::audioControls.isInitialized) audioControls.visibility = View.VISIBLE
         val density = resources.displayMetrics.density
         val video = nativeVideos[zone] ?: VideoView(this).also { view ->
             view.setBackgroundColor(Color.BLACK)
             view.setOnPreparedListener { player: MediaPlayer ->
-                player.setVolume(if (videoMuted) 0f else videoVolume, if (videoMuted) 0f else videoVolume)
+                player.setVolume(1f, 1f)
                 player.isLooping = true
                 view.start()
                 Log.i("AKSESI_VIDEO", "VIDEO_PREPARED zone=$zone duration=${player.duration}")
@@ -162,7 +142,6 @@ class MainActivity : Activity() {
             nativeVideos[zone] = view
             root.addView(view)
         }
-        if (::audioControls.isInitialized) audioControls.bringToFront()
 
         val params = (video.layoutParams as? FrameLayout.LayoutParams)
             ?: FrameLayout.LayoutParams(1, 1)
@@ -275,77 +254,6 @@ class MainActivity : Activity() {
         } catch (_: Exception) {
         }
         root.removeView(video)
-        if (nativeVideos.isEmpty() && ::audioControls.isInitialized) audioControls.visibility = View.GONE
-    }
-
-    private fun setVideoMuted(muted: Boolean) {
-        videoMuted = muted
-        nativeVideos.values.forEach { video ->
-            try {
-                val field = VideoView::class.java.getDeclaredField("mMediaPlayer")
-                field.isAccessible = true
-                (field.get(video) as? MediaPlayer)?.setVolume(if (muted) 0f else videoVolume, if (muted) 0f else videoVolume)
-            } catch (_: Exception) {
-                // VideoView applies the selected volume on the next prepared playback.
-            }
-        }
-        if (::muteButton.isInitialized) muteButton.text = if (muted) "Zëri: OFF" else "Zëri: ON"
-        if (::webView.isInitialized) webView.evaluateJavascript(
-            "document.querySelectorAll('video').forEach(function(v){v.muted=" + muted + ";});", null
-        )
-    }
-
-    private fun setVideoVolume(volume: Float) {
-        videoVolume = volume.coerceIn(0f, 1f)
-        if (videoMuted) return
-        nativeVideos.values.forEach { video ->
-            try {
-                val field = VideoView::class.java.getDeclaredField("mMediaPlayer")
-                field.isAccessible = true
-                (field.get(video) as? MediaPlayer)?.setVolume(videoVolume, videoVolume)
-            } catch (_: Exception) {
-                // The selected volume is also applied when the next video is prepared.
-            }
-        }
-        if (::webView.isInitialized) webView.evaluateJavascript(
-            "document.querySelectorAll('video').forEach(function(v){v.volume=" + videoVolume + ";});", null
-        )
-    }
-
-    private fun createAudioControls() {
-        val panel = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(12, 6, 12, 6)
-            setBackgroundColor(0xCC171719.toInt())
-            visibility = View.GONE
-            isFocusable = false
-        }
-        muteButton = Button(this).apply {
-            text = "Zëri: ON"
-            isAllCaps = false
-            textSize = 14f
-            setOnClickListener { setVideoMuted(!videoMuted) }
-        }
-        volumeSlider = SeekBar(this).apply {
-            max = 100
-            progress = 100
-            contentDescription = "Volumi i videos"
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    if (fromUser) setVideoVolume(progress / 100f)
-                }
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
-        }
-        panel.addView(muteButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        panel.addView(volumeSlider, LinearLayout.LayoutParams(180, ViewGroup.LayoutParams.WRAP_CONTENT))
-        audioControls = panel
-        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END)
-        params.setMargins(0, 0, 18, 18)
-        root.addView(panel, params)
-        panel.bringToFront()
     }
 
     @Suppress("DEPRECATION")
@@ -424,7 +332,6 @@ class MainActivity : Activity() {
             )
         )
         setContentView(root)
-        createAudioControls()
         registerConnectivityMonitor()
         try {
             val html = assets.open("player-legacy.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
