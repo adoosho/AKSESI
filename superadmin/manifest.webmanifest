@@ -1,0 +1,17 @@
+{
+  "name": "AKSESI · Super Admin",
+  "short_name": "SuperAdmin",
+  "start_url": "/superadmin/",
+  "scope": "/superadmin/",
+  "display": "standalone",
+  "background_color": "#0c0d10",
+  "theme_color": "#0c0d10",
+  "icons": [
+    {
+      "src": "/aksesi-icon.png?v=6",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
