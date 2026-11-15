@@ -20,14 +20,41 @@ jobs:
             -scheme AKSESI \
             -sdk iphonesimulator \
             -configuration Release \
-            -derivedDataPath build/ios \
+            -derivedDataPath build/ios-simulator \
             CODE_SIGNING_ALLOWED=NO
       - name: Package simulator app
         run: |
-          cd build/ios/Build/Products/Release-iphonesimulator
+          cd build/ios-simulator/Build/Products/Release-iphonesimulator
           zip -r "$GITHUB_WORKSPACE/AKSESI-iOS-Simulator.zip" AKSESI.app
       - uses: actions/upload-artifact@v4
         with:
           name: aksesi-ios-simulator-build
           path: AKSESI-iOS-Simulator.zip
+          retention-days: 30
+
+  build-ios-unsigned-ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive iPhone app without Apple signing
+        run: |
+          xcodebuild \
+            -project ios-player/AKSESI.xcodeproj \
+            -scheme AKSESI \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            -archivePath build/AKSESI-unsigned.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/AKSESI-unsigned.xcarchive/Products/Applications/AKSESI.app build/ipa/Payload/
+          cd build/ipa
+          zip -r "$GITHUB_WORKSPACE/AKSESI-iOS-Unsigned.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aksesi-ios-unsigned-ipa
+          path: AKSESI-iOS-Unsigned.ipa
           retention-days: 30
