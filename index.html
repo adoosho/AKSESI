@@ -349,7 +349,7 @@ async function admin(sessionOverride=null){
   if(!window.aksesiIntervalsStarted){
    window.aksesiIntervalsStarted=true;
    setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},5000);
-   setInterval(refreshPresence,5000);
+   setInterval(refreshPresence,15000);
    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPresence()});
    addEventListener('storage',()=>{if(!modal)draw()});
   }
@@ -425,7 +425,7 @@ function resetPasswordScreen(){
   try{const {data:{session}}=await sb.auth.getSession();if(!session)throw new Error('Lidhja e rikuperimit ka skaduar. Kërko një email të ri për rivendosje.');const {error}=await sb.auth.updateUser({password});if(error)throw error;recoveryMode=false;await sb.auth.signOut();history.replaceState(null,'',location.pathname+'#admin');login('Fjalëkalimi u ndryshua me sukses. Tani hyr me fjalëkalimin e ri.')}catch(e){$('#er').textContent=e.message||'Nuk u ruajt fjalëkalimi.';button.disabled=false;button.textContent='Ruaj fjalëkalimin e ri'}
  };
 }
-const online=c=>{const d=rd('sig_dev_'+c,null),serverNow=Date.now()-presenceClockOffsetMs;return d&&d.status==='online'&&Number.isFinite(Number(d.seen))&&serverNow-Number(d.seen)<60000&&serverNow-Number(d.seen)>-30000?d:null};
+const online=c=>{const d=rd('sig_dev_'+c,null),serverNow=Date.now()-presenceClockOffsetMs;return d&&d.status==='online'&&Number.isFinite(Number(d.seen))&&serverNow-Number(d.seen)<90000&&serverNow-Number(d.seen)>-30000?d:null};
 function lastSeen(k){const d=rd('sig_dev_'+k,null);if(!d)return 'asnjëherë';const s=Math.round((Date.now()-d.seen)/1000);return s<60?s+'s më parë':s<3600?Math.round(s/60)+' min më parë':Math.round(s/3600)+' orë më parë'}
 function draw(){const previewPositions={};document.querySelectorAll('video[data-preview-key]').forEach(v=>{const key=v.getAttribute('data-preview-key');if(key)previewPositions[key]={src:v.getAttribute('src'),time:v.currentTime||0}});const c=cfg(),u=me();if(!u){sessionStorage.clear();location.reload();return}
  const A=u.role==='admin',Mg=u.role!=='advertiser',bn=id=>esc(c.biz.find(b=>b.id===id)?.name||'—'),inB=x=>A?(!fb||x.biz===fb):x.biz===u.biz;
