@@ -349,7 +349,7 @@ async function admin(sessionOverride=null){
   if(!window.aksesiIntervalsStarted){
    window.aksesiIntervalsStarted=true;
    setInterval(()=>{if(!modal&&document.activeElement.tagName!=='SELECT')draw()},5000);
-   setInterval(refreshPresence,15000);
+   setInterval(refreshPresence,30000);
    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPresence()});
    addEventListener('storage',()=>{if(!modal)draw()});
   }
