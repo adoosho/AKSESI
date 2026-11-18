@@ -50,15 +50,18 @@ h1{font-size:34px;line-height:1.2;margin:14px 0}
 <script>
 (function(){
 var API='https://bnrogtqhxbqinrtzwblv.supabase.co/functions/v1/aksesi-sync';
-var KEY='sig_cfg',code=null,token=null,tokenCode=null,registered=false,busy=false,config=null,zones=[],layout=null,rotation=0,wasPaired=false,lastError='',lastPlaySignature='';
+var KEY='sig_cfg',code=null,token=null,tokenCode=null,registered=false,busy=false,config=null,zones=[],layout=null,rotation=0,wasPaired=false,lastError='',lastPlaySignature='',beatTimer=null,beatInterval=15000,beatFailures=0;
 var LAY={full:[[0,0,100,100]],v2:[[0,0,50,100],[50,0,50,100]],h2:[[0,0,100,50],[0,50,100,50]],g4:[[0,0,50,50],[50,0,50,50],[0,50,50,50],[50,50,50,50]]};
 function el(id){return document.getElementById(id);}
+function setBeatInterval(ms){if(beatInterval===ms&&beatTimer!==null)return;if(beatTimer!==null)clearInterval(beatTimer);beatInterval=ms;beatTimer=setInterval(beat,beatInterval);}
+function noteBeatFailure(){beatFailures=Math.min(beatFailures+1,3);setBeatInterval(Math.min(120000,15000*Math.pow(2,beatFailures)));}
+function noteBeatSuccess(){beatFailures=0;setBeatInterval(15000);}
 function safeGet(k){var v=null;try{v=localStorage.getItem(k);}catch(e){}if(!v&&window.AksesiStore){try{v=window.AksesiStore.get(k)||'';}catch(e){}}if(v&&window.AksesiStore){try{window.AksesiStore.set(k,String(v));}catch(e){}}return v||null;}
 function safeSet(k,v){try{localStorage.setItem(k,String(v));}catch(e){}try{if(window.AksesiStore)window.AksesiStore.set(k,String(v));}catch(e){}}
 function safeRemove(k){try{localStorage.removeItem(k);}catch(e){}try{if(window.AksesiStore)window.AksesiStore.remove(k);}catch(e){}}
 function readConfig(){var c={};try{c=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){}if(!c.devices||typeof c.devices!=='object')c.devices={};if(!c.ads||!Array.isArray(c.ads))c.ads=[];return c;}
 function makeCode(){var n;do{n=String(Math.floor(100000+Math.random()*900000));}while(config.devices[n]);return n;}
-function xhr(action,data,done){var x=new XMLHttpRequest(),body={action:action,code:code};if(action!=='device_register')body.player_data=playerData();if(action==='device_state')body.token=token;x.open('POST',API,true);x.setRequestHeader('Content-Type','application/json');x.setRequestHeader('apikey','sb_publishable_XmxSriGEsgBmA18TrymD7Q_aEvYIwBK');x.onreadystatechange=function(){if(x.readyState!==4)return;var j={};try{j=JSON.parse(x.responseText||'{}');}catch(e){}if(x.status>=200&&x.status<300&&!j.error){done(null,j);}else{done(new Error(j.error||'Gabim në server ('+x.status+')'),null);}};x.onerror=function(){done(new Error('Kontrollo lidhjen me internetin.'),null);};try{x.send(JSON.stringify(body));}catch(e){done(e,null);}}
+function xhr(action,data,done){var x=new XMLHttpRequest(),body={action:action,code:code},finished=false;function finish(err,result){if(finished)return;finished=true;if(err){if(x.status===0||x.status===402||x.status>=500)noteBeatFailure();}else noteBeatSuccess();done(err,result);}if(action!=='device_register')body.player_data=playerData();if(action==='device_state')body.token=token;x.open('POST',API,true);x.setRequestHeader('Content-Type','application/json');x.setRequestHeader('apikey','sb_publishable_XmxSriGEsgBmA18TrymD7Q_aEvYIwBK');x.onreadystatechange=function(){if(x.readyState!==4)return;var j={};try{j=JSON.parse(x.responseText||'{}');}catch(e){}if(x.status>=200&&x.status<300&&!j.error){finish(null,j);}else{finish(new Error(j.error||'Gabim në server ('+x.status+')'),null);}};x.onerror=function(){finish(new Error('Kontrollo lidhjen me internetin.'),null);};try{x.send(JSON.stringify(body));}catch(e){finish(e,null);}}
 function playerData(){var arr=[],i;for(i=0;i<zones.length;i++){var z=zones[i]&&zones[i].current;arr.push(z&&z.id?{ad:z.id,t:z.title,start:z.start,dur:z.dur}:null);}return {lay:layout,rot:rotation,zs:arr};}
 function showPair(msg){el('pair').style.display='flex';el('zones').style.display='none';el('status').innerHTML=msg||'Në pritje të lidhjes së sigurt...';}
 function drawCode(){var out='',i;for(i=0;i<code.length;i++)out+='<span class="digit">'+code.charAt(i)+'</span>';el('digits').innerHTML=out;}
@@ -86,7 +89,7 @@ function render(){var d=config&&config.devices?config.devices[code]:null;if(!d){
  zoneEl.children[1].style.width=Math.min(100,(now-z.start)/(z.dur*1000)*100)+'%';
  }
 }
-function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,500);setInterval(beat,15000);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
+function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,500);setBeatInterval(15000);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
 try{start();}catch(e){showPair('Gabim gjatë hapjes. Rihape aplikacionin.');}
 })();
 </script>
