@@ -173,6 +173,25 @@ class MainActivity : Activity() {
         return File(dir, digest + ".mp4")
     }
 
+    // Keep offline video storage bounded on low-capacity Android TV devices.
+    // The currently downloaded file is never removed during this cleanup.
+    private fun trimVideoCache(keep: File) {
+        try {
+            val dir = keep.parentFile ?: return
+            val files = dir.listFiles()?.filter { it.isFile && !it.name.endsWith(".part") } ?: return
+            var total = files.sumOf { it.length() }
+            val maxBytes = 1536L * 1024L * 1024L
+            if (total <= maxBytes) return
+            for (file in files.filter { it.absolutePath != keep.absolutePath }.sortedBy { it.lastModified() }) {
+                if (total <= maxBytes) break
+                val size = file.length()
+                if (file.delete()) total -= size
+            }
+        } catch (e: Exception) {
+            Log.w("AKSESI_VIDEO", "VIDEO_CACHE_CLEANUP_FAILED " + e.message)
+        }
+    }
+
     private fun playCachedOrDownload(zone: Int, mediaUrl: String, video: VideoView) {
         if (mediaUrl.startsWith("file://")) {
             video.setVideoURI(Uri.parse(mediaUrl))
@@ -181,6 +200,7 @@ class MainActivity : Activity() {
         }
         val cached = cachedVideoFile(mediaUrl)
         if (cached.isFile && cached.length() > 0L) {
+            cached.setLastModified(System.currentTimeMillis())
             video.setVideoURI(Uri.fromFile(cached))
             video.requestFocus()
             Log.i("AKSESI_VIDEO", "VIDEO_CACHE_HIT zone=" + zone + " bytes=" + cached.length())
@@ -223,6 +243,7 @@ class MainActivity : Activity() {
                 }
                 if (cached.exists()) cached.delete()
                 if (!partial.renameTo(cached)) throw java.io.IOException("Cannot save cached video")
+                trimVideoCache(cached)
                 runOnUiThread {
                     if (nativeVideoUrls[zone] == mediaUrl && nativeVideos[zone] === video) {
                         video.setVideoURI(Uri.fromFile(cached))
