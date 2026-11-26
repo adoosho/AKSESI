@@ -50,12 +50,12 @@ h1{font-size:34px;line-height:1.2;margin:14px 0}
 <script>
 (function(){
 var API='https://bnrogtqhxbqinrtzwblv.supabase.co/functions/v1/aksesi-sync';
-var KEY='sig_cfg',code=null,token=null,tokenCode=null,registered=false,busy=false,config=null,zones=[],layout=null,rotation=0,wasPaired=false,lastError='',lastPlaySignature='',beatTimer=null,beatInterval=120000,beatFailures=0;
+var KEY='sig_cfg',code=null,token=null,tokenCode=null,registered=false,busy=false,config=null,zones=[],layout=null,rotation=0,wasPaired=false,lastError='',lastPlaySignature='',beatTimer=null,beatInterval=300000,beatFailures=0;
 var LAY={full:[[0,0,100,100]],v2:[[0,0,50,100],[50,0,50,100]],h2:[[0,0,100,50],[0,50,100,50]],g4:[[0,0,50,50],[50,0,50,50],[0,50,50,50],[50,50,50,50]]};
 function el(id){return document.getElementById(id);}
 function setBeatInterval(ms){if(beatInterval===ms&&beatTimer!==null)return;if(beatTimer!==null)clearInterval(beatTimer);beatInterval=ms;beatTimer=setInterval(beat,beatInterval);}
-function noteBeatFailure(){beatFailures=Math.min(beatFailures+1,3);setBeatInterval(Math.min(600000,120000*Math.pow(2,beatFailures)));}
-function noteBeatSuccess(){beatFailures=0;setBeatInterval(120000);}
+function noteBeatFailure(){beatFailures=Math.min(beatFailures+1,5);setBeatInterval(Math.min(1800000,300000*Math.pow(2,beatFailures)));}
+function noteBeatSuccess(){beatFailures=0;setBeatInterval(300000);}
 function safeGet(k){var v=null;try{v=localStorage.getItem(k);}catch(e){}if(!v&&window.AksesiStore){try{v=window.AksesiStore.get(k)||'';}catch(e){}}if(v&&window.AksesiStore){try{window.AksesiStore.set(k,String(v));}catch(e){}}return v||null;}
 function safeSet(k,v){try{localStorage.setItem(k,String(v));}catch(e){}try{if(window.AksesiStore)window.AksesiStore.set(k,String(v));}catch(e){}}
 function safeRemove(k){try{localStorage.removeItem(k);}catch(e){}try{if(window.AksesiStore)window.AksesiStore.remove(k);}catch(e){}}
@@ -90,7 +90,7 @@ function render(){var d=config&&config.devices?config.devices[code]:null;if(!d){
  zoneEl.children[1].style.width=Math.min(100,(now-z.start)/(z.dur*1000)*100)+'%';
  }
 }
-function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,500);setBeatInterval(120000);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
+function start(){config=readConfig();code=safeGet('sig_pcode');if(!/^[0-9]{6}$/.test(code||'')){code=makeCode();safeSet('sig_pcode',code);}drawCode();token=safeGet('sig_ptoken');tokenCode=safeGet('sig_ptoken_code');if(tokenCode!==code){safeRemove('sig_ptoken');safeRemove('sig_ptoken_code');token=null;}render();beat();setInterval(render,500);setBeatInterval(300000);el('newcode').style.display='block';el('newcode').onclick=function(){if(window.confirm('Të gjenerohet kod i ri për një monitor të ri?')){safeRemove('sig_pcode');location.reload();}};}
 try{start();}catch(e){showPair('Gabim gjatë hapjes. Rihape aplikacionin.');}
 })();
 </script>
